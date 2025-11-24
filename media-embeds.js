@@ -20,6 +20,9 @@ function detectMediaType(url) {
     if (/vimeo\.com\//i.test(urlLower)) {
         return 'vimeo';
     }
+    if (/soundcloud\.com\//i.test(urlLower)) {
+        return 'soundcloud';
+    }
 
     // Audio formats
     if (/\.(mp3|wav|ogg|m4a|aac|flac)(\?|$)/i.test(urlLower)) {
@@ -49,6 +52,13 @@ function getYouTubeId(url) {
 function getVimeoId(url) {
     const match = url.match(/vimeo\.com\/(\d+)/);
     return match ? match[1] : null;
+}
+
+// Encode SoundCloud URL for embed
+function getSoundCloudEmbedUrl(url) {
+    // Encode the SoundCloud URL for the iframe src
+    const encodedUrl = encodeURIComponent(url);
+    return `https://w.soundcloud.com/player/?url=${encodedUrl}&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true`;
 }
 
 // Clean URL by removing query parameters for images
@@ -109,6 +119,14 @@ function renderMediaEmbed(url, type) {
                     allowfullscreen>
                 </iframe>
             </div>` : '';
+
+        case 'soundcloud':
+            const soundcloudEmbedUrl = getSoundCloudEmbedUrl(url);
+            return `<div class="media-embed media-audio">
+                <iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" 
+                    src="${soundcloudEmbedUrl}">
+                </iframe>
+            </div>`;
 
         case 'audio':
             return `<div class="media-embed media-audio">
