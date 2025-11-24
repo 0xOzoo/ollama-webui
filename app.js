@@ -691,8 +691,29 @@ function renderMessage(message) {
     const contentEl = document.createElement('div');
     contentEl.className = 'message-content';
 
-    // Parse markdown
-    contentEl.innerHTML = marked.parse(message.content);
+    // Process message for media embeds
+    if (typeof processMessageWithMedia === 'function') {
+        const processed = processMessageWithMedia(message.content);
+
+        // Add text content if present
+        if (processed.text && processed.text.trim()) {
+            const textDiv = document.createElement('div');
+            textDiv.innerHTML = marked.parse(processed.text);
+            contentEl.appendChild(textDiv);
+        }
+
+        // Add media embeds
+        if (processed.embeds && processed.embeds.length > 0) {
+            processed.embeds.forEach(embedHTML => {
+                const embedContainer = document.createElement('div');
+                embedContainer.innerHTML = embedHTML;
+                contentEl.appendChild(embedContainer.firstChild);
+            });
+        }
+    } else {
+        // Fallback if media-embeds.js not loaded
+        contentEl.innerHTML = marked.parse(message.content);
+    }
 
     messageEl.appendChild(avatarEl);
     messageEl.appendChild(contentEl);
