@@ -624,11 +624,13 @@ async function handleSendMessage() {
 
     // Perform web search if enabled
     let searchResults = null;
-    if (CONFIG.webSearchEnabled) {
+    if (CONFIG.webSearchEnabled && typeof performWebSearch === 'function') {
         try {
             searchResults = await performWebSearch(message);
             if (searchResults && searchResults.results && searchResults.results.length > 0) {
-                displaySearchResults(searchResults);
+                if (typeof displaySearchResults === 'function') {
+                    displaySearchResults(searchResults);
+                }
             }
         } catch (error) {
             console.error('Web search failed:', error);
