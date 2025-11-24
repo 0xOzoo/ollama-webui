@@ -135,30 +135,51 @@ function renderMediaEmbed(url, type) {
 
 // Process message content and embed media
 function processMessageWithMedia(content) {
-    // URL regex pattern
+    // Extract URLs from markdown image syntax ![alt](url)
+    const markdownImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g;
     const urlPattern = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
 
     let processedContent = content;
     const mediaEmbeds = [];
-    const urls = content.match(urlPattern) || [];
+    const foundUrls = new Set();
 
-    // Detect and collect media URLs
-    urls.forEach(url => {
+    // First, extract URLs from markdown images
+    let match;
+    while ((match = markdownImagePattern.exec(content)) !== null) {
+        const url = match[2];
+        foundUrls.add(url);
         const type = detectMediaType(url);
-        if (type) {
+        if (type === 'image') {
             const embed = renderMediaEmbed(url, type);
             if (embed) {
                 mediaEmbeds.push(embed);
-                // Optionally remove URL from text if it's just a standalone URL
-                if (content.trim() === url) {
-                    processedContent = '';
+                // Remove the markdown image syntax from content
+                processedContent = processedContent.replace(match[0], '');
+            }
+        }
+    }
+
+    // Then extract plain URLs
+    const urls = content.match(urlPattern) || [];
+    urls.forEach(url => {
+        if (!foundUrls.has(url)) {
+            foundUrls.add(url);
+            const type = detectMediaType(url);
+            if (type) {
+                const embed = renderMediaEmbed(url, type);
+                if (embed) {
+                    mediaEmbeds.push(embed);
+                    // Optionally remove URL from text if it's just a standalone URL
+                    if (content.trim() === url) {
+                        processedContent = '';
+                    }
                 }
             }
         }
     });
 
     return {
-        text: processedContent,
+        text: processedContent.trim(),
         embeds: mediaEmbeds
     };
 }
