@@ -51,15 +51,33 @@ function getVimeoId(url) {
     return match ? match[1] : null;
 }
 
+// Clean URL by removing query parameters for images
+function cleanUrl(url, type) {
+    // For images, remove query parameters like &w=740&q=80
+    if (type === 'image') {
+        try {
+            const urlObj = new URL(url);
+            // Keep the base URL without query parameters
+            return urlObj.origin + urlObj.pathname;
+        } catch (e) {
+            return url; // Return original if URL parsing fails
+        }
+    }
+    return url;
+}
+
 // Render media embed HTML
 function renderMediaEmbed(url, type) {
     if (!type) type = detectMediaType(url);
     if (!type) return '';
 
+    // Clean the URL for images
+    const cleanedUrl = cleanUrl(url, type);
+
     switch (type) {
         case 'image':
             return `<div class="media-embed media-image">
-                <img src="${url}" alt="Image" loading="lazy" onclick="window.open('${url}', '_blank')">
+                <img src="${cleanedUrl}" alt="Image" loading="lazy" onclick="window.open('${cleanedUrl}', '_blank')">
             </div>`;
 
         case 'video':
