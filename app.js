@@ -640,6 +640,7 @@ async function handleSendMessage() {
     // Show loading indicator
     const loadingElement = showLoadingIndicator();
 
+
     // Set generating state
     state.isGenerating = true;
     elements.sendButton.disabled = true;
@@ -841,8 +842,7 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
     }
 
 }
-    }
-}
+
 
 function clearChat() {
     if (confirm('Are you sure you want to clear the chat history?')) {
