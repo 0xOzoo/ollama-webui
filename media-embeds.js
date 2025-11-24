@@ -169,6 +169,35 @@ function renderMediaEmbed(url, type) {
     }
 }
 
+// Detect and extract HTML embed codes (iframe, img tags)
+function detectHtmlEmbed(content) {
+    const embeds = [];
+
+    // Detect iframe tags (for SoundCloud, YouTube embeds, etc.)
+    const iframePattern = /<iframe[^>]*>.*?<\/iframe>/gi;
+    const iframeMatches = content.match(iframePattern) || [];
+    iframeMatches.forEach(iframe => {
+        embeds.push({
+            type: 'iframe',
+            html: iframe,
+            original: iframe
+        });
+    });
+
+    // Detect img tags
+    const imgPattern = /<img[^>]*>/gi;
+    const imgMatches = content.match(imgPattern) || [];
+    imgMatches.forEach(img => {
+        embeds.push({
+            type: 'img',
+            html: img,
+            original: img
+        });
+    });
+
+    return embeds;
+}
+
 // Process message content and embed media
 function processMessageWithMedia(content) {
     // Extract URLs from markdown image syntax ![alt](url)
@@ -179,7 +208,19 @@ function processMessageWithMedia(content) {
     const mediaEmbeds = [];
     const foundUrls = new Set();
 
-    // First, extract URLs from markdown images
+    // First, check for HTML embed codes (iframe, img tags)
+    const htmlEmbeds = detectHtmlEmbed(content);
+    if (htmlEmbeds.length > 0) {
+        htmlEmbeds.forEach(embed => {
+            // Wrap the HTML in a media-embed container
+            const wrappedEmbed = `<div class="media-embed media-html-embed">${embed.html}</div>`;
+            mediaEmbeds.push(wrappedEmbed);
+            // Remove the HTML code from the text content
+            processedContent = processedContent.replace(embed.original, '');
+        });
+    }
+
+    // Then, extract URLs from markdown images
     let match;
     while ((match = markdownImagePattern.exec(content)) !== null) {
         const url = match[2];
