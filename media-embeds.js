@@ -129,61 +129,6 @@ function renderMediaEmbed(url, type) {
             </div>`;
 
         default:
-            return '';
-    }
-}
-
-// Process message content and embed media
-function processMessageWithMedia(content) {
-    // Extract URLs from markdown image syntax ![alt](url)
-    const markdownImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    const urlPattern = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
-
-    let processedContent = content;
-    const mediaEmbeds = [];
-    const foundUrls = new Set();
-
-    // First, extract URLs from markdown images
-    let match;
-    while ((match = markdownImagePattern.exec(content)) !== null) {
-        const url = match[2];
-        foundUrls.add(url);
-        const type = detectMediaType(url);
-        if (type === 'image') {
-            const embed = renderMediaEmbed(url, type);
-            if (embed) {
-                mediaEmbeds.push(embed);
-                // Remove the markdown image syntax from content
-                processedContent = processedContent.replace(match[0], '');
-            }
-        }
-    }
-
-    // Then extract plain URLs
-    const urls = content.match(urlPattern) || [];
-    urls.forEach(url => {
-        if (!foundUrls.has(url)) {
-            foundUrls.add(url);
-            const type = detectMediaType(url);
-            if (type) {
-                const embed = renderMediaEmbed(url, type);
-                if (embed) {
-                    mediaEmbeds.push(embed);
-                    // Optionally remove URL from text if it's just a standalone URL
-                    if (content.trim() === url) {
-                        processedContent = '';
-                    }
-                }
-            }
-        }
-    });
-
-    return {
-        text: processedContent.trim(),
-        embeds: mediaEmbeds
-    };
-}
-
 // Example usage - modify your addMessage function:
 /*
 function addMessage(role, content) {
