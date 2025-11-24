@@ -25,7 +25,8 @@ const voiceState = {
 const CONFIG = {
     ollamaHost: 'http://localhost:11434',
     model: 'gemma3:4b',
-    webSearchEnabled: false
+    webSearchEnabled: false,
+    ollamaApiKey: '8c09136495174857951075d1f4e9fa09.YUehTySxFxVGvDt_2XQSsar4'
 };
 
 // DOM Elements
@@ -837,61 +838,7 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
         }
     }
 
-    // Save updated history
-    saveMessagesToStorage();
 }
-
-// ============================================
-// Web Search Mock (Replace with actual API)
-// ============================================
-async function performWebSearch(query) {
-    console.log(`Searching web for: ${query}`);
-    // In a real app, you would call a search API here (e.g., DuckDuckGo, Google, Bing)
-    // For this demo, we'll return mock results or use a free API if available
-
-    // Mock results for demonstration
-    return {
-        results: [
-            {
-                title: `Search result for ${query}`,
-                body: `This is a simulated search result for "${query}". In a production environment, you would integrate with a real search API like DuckDuckGo, Bing, or Google Custom Search.`,
-                href: 'https://example.com'
-            }
-        ]
-    };
-}
-
-function displaySearchResults(results) {
-    const searchInfo = document.createElement('div');
-    searchInfo.className = 'search-results-info';
-    searchInfo.innerHTML = `
-        <div class="search-header">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="M21 21l-4.35-4.35"></path>
-            </svg>
-            <span>Used ${results.results.length} search results</span>
-        </div>
-    `;
-    elements.chatMessages.appendChild(searchInfo);
-}
-
-// ============================================
-// Storage
-// ============================================
-function saveMessagesToStorage() {
-    localStorage.setItem('ollama_chat_history', JSON.stringify(state.messages));
-}
-
-function loadMessages() {
-    const saved = localStorage.getItem('ollama_chat_history');
-    if (saved) {
-        try {
-            state.messages = JSON.parse(saved);
-            state.messages.forEach(msg => renderMessage(msg));
-        } catch (e) {
-            console.error('Error loading history', e);
-        }
     }
 }
 
