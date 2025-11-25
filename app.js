@@ -41,7 +41,9 @@ const elements = {
     clearChatButton: null,
     connectionStatus: null,
     loadingTemplate: null,
+    inputRow: null, // New
     recordingUI: null,
+    stopRecordingButton: null, // New
     visualizerContainer: null,
     recordingTimer: null,
     voicePreview: null,
@@ -69,8 +71,12 @@ function init() {
     elements.connectionStatus = document.getElementById('connectionStatus');
     elements.loadingTemplate = document.getElementById('loadingTemplate');
 
+    // New Input Row
+    elements.inputRow = document.querySelector('.input-row');
+
     // Voice UI Elements
     elements.recordingUI = document.getElementById('recordingUI');
+    elements.stopRecordingButton = document.getElementById('stopRecordingButton');
     elements.visualizerContainer = document.getElementById('visualizerContainer');
     elements.recordingTimer = document.getElementById('recordingTimer');
 
@@ -111,7 +117,10 @@ function setupEventListeners() {
     elements.clearChatButton.addEventListener('click', clearChat);
 
     // Voice Recording
-    elements.voiceButton.addEventListener('click', toggleVoiceRecording);
+    elements.voiceButton.addEventListener('click', startVoiceRecording);
+    if (elements.stopRecordingButton) {
+        elements.stopRecordingButton.addEventListener('click', stopVoiceRecording);
+    }
 
     // Voice preview controls
     if (elements.previewPlayButton) elements.previewPlayButton.addEventListener('click', playPreview);
@@ -229,15 +238,6 @@ async function populateMicSelect() {
     }
 }
 
-async function toggleVoiceRecording() {
-    console.log("Toggle voice recording clicked");
-    if (voiceState.isRecording) {
-        stopVoiceRecording();
-    } else {
-        await startVoiceRecording();
-    }
-}
-
 async function startVoiceRecording() {
     console.log("Starting voice recording...");
 
@@ -308,7 +308,6 @@ async function startVoiceRecording() {
             // Show Preview UI
             elements.recordingUI.style.display = 'none';
             elements.voicePreview.style.display = 'flex';
-            elements.voiceButton.style.display = 'none'; // Hide voice button during preview
 
             // Stop all tracks
             stream.getTracks().forEach(track => track.stop());
@@ -381,17 +380,9 @@ async function startVoiceRecording() {
         }
 
         // UI Updates
-        elements.voiceButton.classList.add('recording');
-        elements.voiceButton.title = 'Stop recording';
-        // Change icon to stop square
-        elements.voiceButton.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-            </svg>
-        `;
-
-        elements.messageInput.style.display = 'none';
+        if (elements.inputRow) elements.inputRow.style.display = 'none';
         elements.recordingUI.style.display = 'flex';
+
         if (elements.previewTranscript) elements.previewTranscript.textContent = 'Listening...';
 
         // Populate microphone select
@@ -485,19 +476,10 @@ function stopVoiceRecording() {
         }
 
         // UI Updates
-        elements.voiceButton.classList.remove('recording');
-        elements.voiceButton.title = 'Voice message';
-        // Restore microphone icon
-        elements.voiceButton.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
-                <path d="M19 10v2a7 7 0 01-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>
-        `;
-
         elements.recordingUI.style.display = 'none';
+        // Note: We don't show inputRow yet, because we transition to preview mode
+        // The 'stop' event listener on mediaRecorder handles showing the preview
+        // If we wanted to go straight back to input, we'd do it here, but preview is better.
 
         // Update transcript preview
         if (elements.previewTranscript) {
@@ -558,8 +540,14 @@ function discardRecording() {
     // Reset UI
     elements.voicePreview.classList.remove('playing');
     elements.voicePreview.style.display = 'none';
-    elements.messageInput.style.display = 'block';
-    elements.voiceButton.style.display = 'flex';
+
+    if (elements.inputRow) {
+        elements.inputRow.style.display = 'flex';
+    } else {
+        // Fallback for safety
+        elements.messageInput.style.display = 'block';
+        elements.voiceButton.style.display = 'flex';
+    }
 
     // Reset play button icon
     elements.previewPlayButton.innerHTML = `
@@ -599,6 +587,48 @@ function confirmRecording() {
 }
 
 // ============================================
+// Storage Handling
+// ============================================
+function loadMessages() {
+    const saved = localStorage.getItem('ollama_chat_history');
+    if (saved) {
+        try {
+            state.messages = JSON.parse(saved);
+            state.messages.forEach(msg => renderMessage(msg));
+        } catch (e) {
+            console.error('Failed to load messages:', e);
+        }
+    }
+}
+
+function saveMessagesToStorage() {
+    localStorage.setItem('ollama_chat_history', JSON.stringify(state.messages));
+}
+
+function loadMessages() {
+    const saved = localStorage.getItem('ollama_chat_history');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                state.messages = parsed;
+                state.messages.forEach(msg => renderMessage(msg));
+            } else {
+                console.warn('Saved messages format invalid, resetting.');
+                localStorage.removeItem('ollama_chat_history');
+            }
+        } catch (e) {
+            console.error('Failed to load messages:', e);
+            localStorage.removeItem('ollama_chat_history');
+        }
+    }
+}
+
+function saveMessagesToStorage() {
+    localStorage.setItem('ollama_chat_history', JSON.stringify(state.messages));
+}
+
+// ============================================
 // Message Handling
 // ============================================
 async function handleSendMessage() {
@@ -617,10 +647,16 @@ async function handleSendMessage() {
     }
 
     // Add user message
-    addMessage({
-        role: 'user',
-        content: message,
-    });
+    try {
+        addMessage({
+            role: 'user',
+            content: message,
+        });
+    } catch (e) {
+        console.error("Error adding message:", e);
+        alert("Error sending message: " + e.message);
+        return;
+    }
 
     // Perform web search if enabled
     let searchResults = null;
@@ -702,7 +738,12 @@ function renderMessage(message) {
         // Add text content if present
         if (processed.text && processed.text.trim()) {
             const textDiv = document.createElement('div');
-            textDiv.innerHTML = marked.parse(processed.text);
+            if (typeof marked !== 'undefined') {
+                textDiv.innerHTML = marked.parse(processed.text);
+            } else {
+                textDiv.textContent = processed.text;
+                console.warn('Marked library not found, using plain text');
+            }
             contentEl.appendChild(textDiv);
         }
 
@@ -716,7 +757,207 @@ function renderMessage(message) {
         }
     } else {
         // Fallback if media-embeds.js not loaded
-        contentEl.innerHTML = marked.parse(message.content);
+        if (typeof marked !== 'undefined') {
+            contentEl.innerHTML = marked.parse(message.content);
+        } else {
+            contentEl.textContent = message.content;
+            console.warn('Marked library not found, using plain text');
+        }
+    }
+
+    messageEl.appendChild(avatarEl);
+    messageEl.appendChild(contentEl);
+
+    elements.chatMessages.appendChild(messageEl);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+}
+
+function showLoadingIndicator() {
+    const template = elements.loadingTemplate.content.cloneNode(true);
+    const loadingElement = template.querySelector('.message');
+    elements.chatMessages.appendChild(loadingElement);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    return loadingElement;
+}
+
+function removeLoadingIndicator(element) {
+    if (element && element.parentNode) {
+        element.remove();
+    }
+}
+
+function showErrorMessage(text) {
+    const errorEl = document.createElement('div');
+    errorEl.className = 'error-message';
+    errorEl.textContent = text;
+    elements.chatMessages.appendChild(errorEl);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+    setTimeout(() => {
+        errorEl.remove();
+    }, 5000);
+}
+
+// ============================================
+// Ollama API Integration
+// ============================================
+async function checkConnection() {
+    try {
+        const response = await fetch(`${CONFIG.ollamaHost}/api/tags`);
+        if (response.ok) {
+            updateConnectionStatus(true);
+        } else {
+            updateConnectionStatus(false);
+        }
+    } catch (error) {
+        updateConnectionStatus(false);
+    }
+}
+
+function updateConnectionStatus(isConnected) {
+    const dot = elements.connectionStatus.querySelector('.status-dot');
+    const text = elements.connectionStatus.querySelector('.status-text');
+
+    if (isConnected) {
+        dot.style.backgroundColor = '#10b981';
+        text.textContent = 'Connected';
+    } else {
+        dot.style.backgroundColor = '#ef4444';
+        text.textContent = 'Disconnected';
+    }
+}
+
+async function sendToOllama(prompt, loadingElement, searchResults = null) {
+    let fullPrompt = prompt;
+
+    // Append search results to prompt if available
+    if (searchResults && searchResults.results && searchResults.results.length > 0) {
+        const context = searchResults.results.map(r => `Title: ${r.title}\nSnippet: ${r.body}\nURL: ${r.href}`).join('\n\n');
+        fullPrompt = `Context from web search:\n${context}\n\nUser Query: ${prompt}\n\nPlease answer the user's query using the provided context if relevant.`;
+    }
+
+    const response = await fetch(`${CONFIG.ollamaHost}/api/generate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: CONFIG.model,
+            prompt: fullPrompt,
+            stream: true
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let assistantMessage = { role: 'assistant', content: '' };
+
+    // Replace loading indicator with empty message
+    removeLoadingIndicator(loadingElement);
+    addMessage(assistantMessage);
+
+    // Get the last message element (the one we just added)
+    const messageEls = elements.chatMessages.querySelectorAll('.message.assistant');
+    const lastMessageEl = messageEls[messageEls.length - 1];
+    const contentEl = lastMessageEl.querySelector('.message-content');
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (!line) continue;
+            try {
+                const json = JSON.parse(line);
+                if (json.response) {
+                    assistantMessage.content += json.response;
+                    contentEl.innerHTML = marked.parse(assistantMessage.content);
+                    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+                }
+            } catch (e) {
+                console.error('Error parsing JSON chunk', e);
+            }
+        }
+    }
+
+}
+
+function addMessage(message) {
+    state.messages.push(message);
+    saveMessagesToStorage();
+    renderMessage(message);
+}
+
+function renderMessage(message) {
+    const messageEl = document.createElement('div');
+    messageEl.className = `message ${message.role}`;
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'message-avatar';
+
+    if (message.role === 'assistant') {
+        avatarEl.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="url(#avatarGradient)"/>
+                <defs>
+                    <linearGradient id="avatarGradient" x1="4" y1="4" x2="20" y2="20">
+                        <stop offset="0%" stop-color="#667eea" />
+                        <stop offset="100%" stop-color="#764ba2" />
+                    </linearGradient>
+                </defs>
+            </svg>
+        `;
+    } else {
+        avatarEl.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#e2e8f0"/>
+                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#64748b"/>
+            </svg>
+        `;
+    }
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'message-content';
+
+    // Process message for media embeds
+    if (typeof processMessageWithMedia === 'function') {
+        const processed = processMessageWithMedia(message.content);
+
+        // Add text content if present
+        if (processed.text && processed.text.trim()) {
+            const textDiv = document.createElement('div');
+            if (typeof marked !== 'undefined') {
+                textDiv.innerHTML = marked.parse(processed.text);
+            } else {
+                textDiv.textContent = processed.text;
+                console.warn('Marked library not found, using plain text');
+            }
+            contentEl.appendChild(textDiv);
+        }
+
+        // Add media embeds
+        if (processed.embeds && processed.embeds.length > 0) {
+            processed.embeds.forEach(embedHTML => {
+                const embedContainer = document.createElement('div');
+                embedContainer.innerHTML = embedHTML;
+                contentEl.appendChild(embedContainer.firstChild);
+            });
+        }
+    } else {
+        // Fallback if media-embeds.js not loaded
+        if (typeof marked !== 'undefined') {
+            contentEl.innerHTML = marked.parse(message.content);
+        } else {
+            contentEl.textContent = message.content;
+            console.warn('Marked library not found, using plain text');
+        }
     }
 
     messageEl.appendChild(avatarEl);
@@ -845,47 +1086,50 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
 
 
 function clearChat() {
-    if (confirm('Are you sure you want to clear the chat history?')) {
-        state.messages = [];
-        localStorage.removeItem('ollama_chat_history');
-        elements.chatMessages.innerHTML = '';
+    console.log('clearChat function called');
 
-        // Show welcome message again
-        const welcomeHTML = `
-            <div class="welcome-message">
-                <div class="welcome-icon">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="32" cy="32" r="28" fill="url(#welcomeGradient)" opacity="0.1" />
-                        <path d="M32 16L40 24L32 32L24 24L32 16Z" fill="url(#welcomeGradient)" />
-                        <path d="M32 32L40 40L32 48L24 40L32 32Z" fill="url(#welcomeGradient)" opacity="0.7" />
-                        <defs>
-                            <linearGradient id="welcomeGradient" x1="16" y1="16" x2="48" y2="48">
-                                <stop offset="0%" stop-color="#667eea" />
-                                <stop offset="100%" stop-color="#764ba2" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <h2>Welcome to Ollama WebUI</h2>
-                <p>Start a conversation with your AI assistant. I'm running locally on your machine using the <strong>gemma3:4b</strong> model.</p>
-                <div class="example-prompts">
-                    <button class="example-prompt" data-prompt="Hello! Can you introduce yourself?">👋 Introduce yourself</button>
-                    <button class="example-prompt" data-prompt="What are your capabilities as an AI assistant?">🤖 Your capabilities</button>
-                    <button class="example-prompt" data-prompt="Write a creative story about space exploration">✨ Creative story</button>
-                    <button class="example-prompt" data-prompt="Explain quantum computing in simple terms">🔬 Explain a concept</button>
-                </div>
+    // Clear immediately without confirmation (browser was blocking the dialog)
+    state.messages = [];
+    localStorage.removeItem('ollama_chat_history');
+    elements.chatMessages.innerHTML = '';
+
+    // Show welcome message again
+    const welcomeHTML = `
+        <div class="welcome-message">
+            <div class="welcome-icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="32" cy="32" r="28" fill="url(#welcomeGradient)" opacity="0.1" />
+                    <path d="M32 16L40 24L32 32L24 24L32 16Z" fill="url(#welcomeGradient)" />
+                    <path d="M32 32L40 40L32 48L24 40L32 32Z" fill="url(#welcomeGradient)" opacity="0.7" />
+                    <defs>
+                        <linearGradient id="welcomeGradient" x1="16" y1="16" x2="48" y2="48">
+                            <stop offset="0%" stop-color="#667eea" />
+                            <stop offset="100%" stop-color="#764ba2" />
+                        </linearGradient>
+                    </defs>
+                </svg>
             </div>
-        `;
-        elements.chatMessages.innerHTML = welcomeHTML;
+            <h2>Welcome to Ollama WebUI</h2>
+            <p>Start a conversation with your AI assistant. I'm running locally on your machine using the <strong>gemma3:4b</strong> model.</p>
+            <div class="example-prompts">
+                <button class="example-prompt" data-prompt="Hello! Can you introduce yourself?">👋 Introduce yourself</button>
+                <button class="example-prompt" data-prompt="What are your capabilities as an AI assistant?">🤖 Your capabilities</button>
+                <button class="example-prompt" data-prompt="Write a creative story about space exploration">✨ Creative story</button>
+                <button class="example-prompt" data-prompt="Explain quantum computing in simple terms">🔬 Explain a concept</button>
+            </div>
+        </div>
+    `;
+    elements.chatMessages.innerHTML = welcomeHTML;
 
-        // Re-attach listeners to new example prompts
-        document.querySelectorAll('.example-prompt').forEach(button => {
-            button.addEventListener('click', () => {
-                const prompt = button.getAttribute('data-prompt');
-                elements.messageInput.value = prompt;
-                elements.messageInput.focus();
-                handleSendMessage();
-            });
+    // Re-attach listeners to new example prompts
+    document.querySelectorAll('.example-prompt').forEach(button => {
+        button.addEventListener('click', () => {
+            const prompt = button.getAttribute('data-prompt');
+            elements.messageInput.value = prompt;
+            elements.messageInput.focus();
+            handleSendMessage();
         });
-    }
+    });
+
+    console.log('Chat cleared successfully');
 }
