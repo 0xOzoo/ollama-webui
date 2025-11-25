@@ -24,6 +24,9 @@
 - **Smooth Animations** - Polished micro-interactions and transitions
 - **Floating Chat Bar** - Centered, pill-shaped input with premium styling
 
+  <img width="3438" height="1311" alt="image" src="https://github.com/user-attachments/assets/c6084cde-5aa9-4a27-839d-3c8950dda9c5" />
+
+
 ### 💬 Chat Capabilities
 
 - **Real-time Streaming** - See AI responses as they're generated, token by token
@@ -46,6 +49,9 @@
 - **15+ Cryptocurrencies** - Support for Bitcoin, Ethereum, Solana, XRP, and more
 - **Trading Pairs** - Display charts for any trading pair (BTC/USDT, ETH/BTC, etc.)
 - **Dark Theme Charts** - Seamlessly integrated with the UI design
+
+<img width="3440" height="1325" alt="image" src="https://github.com/user-attachments/assets/1190621d-ff5c-4a07-bdf1-102b09ff8720" />
+
 
 ### 🎤 Voice Features
 
