@@ -10,7 +10,9 @@
 </div>
 
 ---
+ Created using Antigravity by Google at 100%. Sorry i'm bad at dev 
 
+ 
 ## ✨ Features
 
 100% Made with Antigravity, sorry i'm bad at coding
