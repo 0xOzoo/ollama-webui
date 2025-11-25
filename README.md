@@ -9,7 +9,8 @@
 
 </div>
 
---- 
+---
+
 ## ✨ Features
 
 100% Made with Antigravity, sorry i'm bad at coding
@@ -52,6 +53,8 @@
 - **Speech-to-Text** - Automatic transcription of voice recordings
 - **Multi-Language** - Support for 8+ languages (English, French, Spanish, German, etc.)
 - **Audio Preview** - Play back recordings before sending
+
+![voice feature](image.png)
 
 ### 🛠️ Additional Features
 
