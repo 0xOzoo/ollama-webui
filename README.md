@@ -12,7 +12,6 @@
 ---
  Created using Antigravity by Google at 100%. Sorry i'm bad at dev 
 
-https://media.discordapp.net/attachments/1385005627159351307/1442947986123522210/IMG_2469.jpg
  
 ## ✨ Features
 
