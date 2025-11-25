@@ -1,66 +1,269 @@
 # Ollama WebUI
 
-A modern, beautiful chat interface for interacting with your local Ollama AI models.
+<div align="center">
+
+**A modern, feature-rich chat interface for interacting with local Ollama AI models**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Ollama](https://img.shields.io/badge/Ollama-Compatible-green.svg)](https://ollama.ai/)
+
+</div>
+
+---
+
+## ✨ Features
+
+### 🎨 Modern User Interface
+
+- **Premium Dark Theme** - Sleek glassmorphism design with blur effects and gradients
+- **Responsive Layout** - Optimized for desktop, tablet, and mobile devices
+- **Smooth Animations** - Polished micro-interactions and transitions
+- **Floating Chat Bar** - Centered, pill-shaped input with premium styling
+
+### 💬 Chat Capabilities
+
+- **Real-time Streaming** - See AI responses as they're generated, token by token
+- **Conversation History** - Automatic local storage of chat sessions
+- **Markdown Support** - Full support for formatted text, code blocks, lists, and more
+- **Media Embeds** - Automatic detection and embedding of YouTube videos, images, and links
+- **Example Prompts** - Quick-start suggestions for new conversations
+
+### 🔍 Web Search Integration
+
+- **DuckDuckGo Search** - Real-time web search powered by DuckDuckGo
+- **Contextual Results** - Search results automatically included in AI context
+- **Toggle On/Off** - Enable or disable web search with a single click
+- **Privacy-Focused** - No tracking, uses DuckDuckGo Lite
+
+### 📊 Cryptocurrency Charts
+
+- **Auto-Detection** - Automatically detects crypto mentions (BTC, $ETH, BTC/USDT, etc.)
+- **TradingView Integration** - Professional interactive charts with real-time data
+- **15+ Cryptocurrencies** - Support for Bitcoin, Ethereum, Solana, XRP, and more
+- **Trading Pairs** - Display charts for any trading pair (BTC/USDT, ETH/BTC, etc.)
+- **Dark Theme Charts** - Seamlessly integrated with the UI design
+
+### 🎤 Voice Features
+
+- **Voice Recording** - Record voice messages with audio visualization
+- **Speech-to-Text** - Automatic transcription of voice recordings
+- **Multi-Language** - Support for 8+ languages (English, French, Spanish, German, etc.)
+- **Audio Preview** - Play back recordings before sending
+
+### 🛠️ Additional Features
+
+- **File Attachments** - Upload and attach files to your messages
+- **Clear Chat** - One-click conversation reset
+- **Connection Status** - Real-time Ollama connection indicator
+- **Auto-Resize Input** - Text area grows as you type
+- **Keyboard Shortcuts** - Enter to send, Shift+Enter for new line
+
+---
 
 ## 🚀 Quick Start
 
-1. **Make sure Ollama is running:**
+### Prerequisites
+
+- [Ollama](https://ollama.ai/) installed and running
+- Node.js (for the web server)
+- A modern web browser
+
+### Installation
+
+1. **Start Ollama:**
+
    ```bash
    ollama serve
    ```
 
-2. **Start the web server:**
-   
-   Double-click `start.bat` or run in terminal:
+2. **Download a model** (if not already installed):
+
    ```bash
-   start.bat
+   ollama pull gemma3:4b
    ```
 
-3. **Open in browser:**
-   
-   Navigate to: `http://localhost:8080`
+3. **Launch the WebUI:**
 
-## 🎨 Features
+   Simply double-click `start.bat` or run:
 
-- **Modern UI**: Beautiful dark mode with glassmorphism effects
-- **Real-time Streaming**: See AI responses as they're generated
-- **Conversation History**: Your chats are saved locally
-- **Markdown Support**: Formatted text, code blocks, and more
-- **Responsive Design**: Works on desktop, tablet, and mobile
+   ```bash
+   ./start.bat
+   ```
+
+4. **Open in browser:**
+
+   Navigate to: **<http://localhost:8080>**
+
+---
 
 ## ⚙️ Configuration
 
-The default configuration in `app.js`:
-- **Ollama URL**: `http://localhost:11434`
-- **Model**: `gemma3:12B`
-- **Streaming**: Enabled
+### Model Settings
 
-To change the model or settings, edit the `CONFIG` object in `app.js`.
+Edit the `CONFIG` object in `app.js`:
+
+```javascript
+const CONFIG = {
+    ollamaHost: 'http://localhost:11434',
+    model: 'gemma3:4b',
+    webSearchEnabled: false
+};
+```
+
+**Available Models:**
+
+```bash
+ollama list
+```
+
+### Web Search
+
+Enable web search by clicking the search icon in the header, or set it as default in `app.js`:
+
+```javascript
+webSearchEnabled: true
+```
+
+### Cryptocurrency Detection
+
+Supported patterns:
+
+- Symbols: `BTC`, `ETH`, `SOL`, `XRP`
+- Dollar signs: `$BTC`, `$ETH`
+- Trading pairs: `BTC/USDT`, `BTCUSDT`, `BTC-USDT`
+
+Customize in `crypto-detector.js` to add more cryptocurrencies.
+
+---
+
+## 📁 Project Structure
+
+```
+ollama-webui/
+├── index.html              # Main HTML structure
+├── app.js                  # Core application logic
+├── style.css               # Premium UI styling
+├── crypto-detector.js      # Cryptocurrency detection
+├── web-search.js           # Web search integration
+├── media-embeds.js         # Media embedding logic
+├── search-server.js        # DuckDuckGo proxy server
+├── start.bat               # Windows startup script
+└── README.md               # This file
+```
+
+---
 
 ## 🔧 Troubleshooting
 
+### Connection Issues
+
 **"Disconnected" status:**
-- Make sure Ollama is running with `ollama serve`
-- Check that Ollama is on port 11434 (default)
 
-**No response from AI:**
-- Verify the model is downloaded: `ollama list`
+- Ensure Ollama is running: `ollama serve`
+- Verify Ollama is on port 11434 (default)
+- Check firewall settings
+
+### No AI Response
+
+- Verify model is downloaded: `ollama list`
 - Check browser console for errors (F12)
+- Ensure sufficient system resources
 
-**CORS errors:**
-- Use the local server (`start.bat`) instead of opening HTML directly
+### Web Search Not Working
 
-## 📝 Model Information
+- Restart the application (`start.bat`)
+- Check that port 8081 is available
+- Verify internet connection
 
-Currently using: **gemma3:12b**
+### Charts Not Loading
 
-To use a different model, update the `model` field in `app.js` CONFIG section.
+- Ensure TradingView script loaded (check browser console)
+- Refresh the page (F5)
+- Check for ad blockers blocking TradingView
 
-Available models: `ollama list`
+---
 
-## 💡 Tips
+## 💡 Usage Tips
 
-- Press **Enter** to send a message
-- Press **Shift+Enter** for a new line
-- Click example prompts to get started
-- Use the clear button to start a fresh conversation
+### Keyboard Shortcuts
+
+- **Enter** - Send message
+- **Shift + Enter** - New line in message
+- **Ctrl + C** (in terminal) - Stop servers
+
+### Best Practices
+
+- Use web search for current events and real-time data
+- Mention crypto symbols to automatically display charts
+- Use voice input for hands-free interaction
+- Clear chat regularly for better performance
+
+### Example Queries
+
+```
+"What's the Bitcoin price?"
+"Search for latest AI news"
+"Explain quantum computing"
+"$ETH analysis"
+"Show me BTC/USDT chart"
+```
+
+---
+
+## 🎯 Supported Cryptocurrencies
+
+Bitcoin (BTC), Ethereum (ETH), Binance Coin (BNB), Solana (SOL), Ripple (XRP), Cardano (ADA), Dogecoin (DOGE), Polkadot (DOT), Polygon (MATIC), Avalanche (AVAX), Chainlink (LINK), Uniswap (UNI), and more.
+
+---
+
+## 📝 Technical Details
+
+### Technologies Used
+
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3
+- **AI**: Ollama API with streaming support
+- **Search**: DuckDuckGo Lite (via proxy)
+- **Charts**: TradingView Widgets
+- **Voice**: Web Speech API
+- **Audio**: AudioMotion Analyzer
+- **Markdown**: Marked.js
+
+### Browser Compatibility
+
+- Chrome/Edge (recommended)
+- Firefox
+- Safari
+- Opera
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+
+- Report bugs
+- Suggest features
+- Submit pull requests
+
+---
+
+## 📄 License
+
+MIT License - feel free to use this project for personal or commercial purposes.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Ollama](https://ollama.ai/) - Local AI models
+- [TradingView](https://www.tradingview.com/) - Financial charts
+- [DuckDuckGo](https://duckduckgo.com/) - Privacy-focused search
+- [Marked.js](https://marked.js.org/) - Markdown parsing
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the Ollama community**
+
+</div>

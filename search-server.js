@@ -18,20 +18,25 @@ const corsHeaders = {
  */
 function searchDuckDuckGo(query) {
     return new Promise((resolve, reject) => {
-        // Use DuckDuckGo Lite for better parsing and current results
-        const searchUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
+        // DuckDuckGo Lite requires POST request to get results
+        const postData = `q=${encodeURIComponent(query)}`;
 
         const options = {
+            hostname: 'lite.duckduckgo.com',
+            path: '/lite/',
+            method: 'POST',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData),
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         };
 
-        https.get(searchUrl, options, (res) => {
+        const req = https.request(options, (res) => {
             let data = '';
 
             res.on('data', (chunk) => {
@@ -48,10 +53,16 @@ function searchDuckDuckGo(query) {
                     reject(error);
                 }
             });
-        }).on('error', (error) => {
+        });
+
+        req.on('error', (error) => {
             console.error('Request error:', error);
             reject(error);
         });
+
+        // Write POST data
+        req.write(postData);
+        req.end();
     });
 }
 
@@ -61,69 +72,50 @@ function searchDuckDuckGo(query) {
 function parseSearchResults(html, query) {
     const results = [];
 
-    // DuckDuckGo Lite uses simple table structure
-    // Each result is in a table row with specific structure
-    const lines = html.split('\n');
+    // DuckDuckGo Lite structure: links are in <a> tags with rel="nofollow"
+    // Snippets are in <td class="result-snippet">
 
-    let currentResult = null;
+    // Method 1: Find all links with their snippets
+    // Pattern: <a rel="nofollow" href="URL">TITLE</a> ... <td class="result-snippet">SNIPPET</td>
+    const resultPattern = /<a\s+rel="nofollow"\s+href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?<td[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+    let match;
+    while ((match = resultPattern.exec(html)) !== null && results.length < 5) {
+        const url = match[1];
+        const title = stripHtml(match[2]);
+        const snippet = stripHtml(match[3]);
 
-        // Look for result links - they contain the actual URLs
-        if (line.includes('class="result-link"') || line.includes('<a rel="nofollow"')) {
-            const urlMatch = line.match(/href="([^"]+)"/);
-            const textMatch = line.match(/>(.*?)<\/a>/);
+        // Skip DuckDuckGo internal links and ads
+        if (url.startsWith('http') &&
+            !url.includes('duckduckgo.com') &&
+            !url.includes('//r.search.yahoo.com') &&
+            title.length > 0) {
 
-            if (urlMatch && textMatch) {
-                const resultUrl = urlMatch[1];
-                const title = stripHtml(textMatch[1]);
-
-                // Skip DuckDuckGo internal links and ads
-                if (resultUrl.startsWith('http') &&
-                    !resultUrl.includes('duckduckgo.com') &&
-                    !resultUrl.includes('//r.search.yahoo.com') &&
-                    title.length > 0) {
-
-                    currentResult = {
-                        title: title,
-                        url: resultUrl,
-                        snippet: ''
-                    };
-                }
-            }
-        }
-
-        // Look for snippet text (usually in the next few lines after the link)
-        if (currentResult && line.includes('class="result-snippet"')) {
-            let snippetText = stripHtml(line);
-            if (snippetText.length > 10) {
-                currentResult.snippet = snippetText;
-                results.push(currentResult);
-                currentResult = null;
-
-                if (results.length >= 5) break;
-            }
+            results.push({
+                title: title,
+                url: url,
+                snippet: snippet || ''
+            });
         }
     }
 
-    // If the above parsing didn't work, try alternative method
+    // Method 2: If no results, try simpler pattern (just links)
     if (results.length === 0) {
-        const altPattern = /<tr>[\s\S]*?<a[^>]*href="(http[^"]+)"[^>]*>(.*?)<\/a>[\s\S]*?<td[^>]*class="result-snippet"[^>]*>(.*?)<\/td>/gi;
-        let match;
+        const linkPattern = /<a\s+rel="nofollow"\s+href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
 
-        while ((match = altPattern.exec(html)) !== null && results.length < 5) {
-            const resultUrl = match[1];
+        while ((match = linkPattern.exec(html)) !== null && results.length < 5) {
+            const url = match[1];
             const title = stripHtml(match[2]);
-            const snippet = stripHtml(match[3]);
 
-            if (!resultUrl.includes('duckduckgo.com') &&
-                !resultUrl.includes('//r.search.yahoo.com') &&
+            if (url.startsWith('http') &&
+                !url.includes('duckduckgo.com') &&
+                !url.includes('//r.search.yahoo.com') &&
                 title.length > 0) {
+
                 results.push({
                     title: title,
-                    url: resultUrl,
-                    snippet: snippet
+                    url: url,
+                    snippet: ''
                 });
             }
         }

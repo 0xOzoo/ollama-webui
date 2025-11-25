@@ -1,30 +1,27 @@
 // Web Search Integration for Ollama WebUI
-// Using Ollama's Web Search API with Tavily
+// Using local DuckDuckGo search server
 
 // Configuration
 const WEB_SEARCH_CONFIG = {
-    apiKey: '8c09136495174857951075d1f4e9fa09.YUehTySxFxVGvDt_2XQSsar4',
-    apiEndpoint: 'https://ollama.com/api/web_search'
+    searchEndpoint: 'http://localhost:8081/search'
 };
 
-// Perform web search using Ollama API
+// Perform web search using local DuckDuckGo server
 async function performWebSearch(query) {
     console.log(`Searching web for: ${query}`);
 
     try {
-        const response = await fetch(WEB_SEARCH_CONFIG.apiEndpoint, {
-            method: 'POST',
+        const response = await fetch(`${WEB_SEARCH_CONFIG.searchEndpoint}?q=${encodeURIComponent(query)}`, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${WEB_SEARCH_CONFIG.apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ query })
+                'Accept': 'application/json'
+            }
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Web search API error:', response.status, errorText);
-            throw new Error(`Web search API returned ${response.status}`);
+            console.error('Web search error:', response.status, errorText);
+            throw new Error(`Web search returned ${response.status}`);
         }
 
         const data = await response.json();
@@ -32,9 +29,11 @@ async function performWebSearch(query) {
         return data;
     } catch (error) {
         console.error('Web search error:', error);
-        throw error;
+        // Return null instead of throwing to allow chat to continue
+        return null;
     }
 }
+
 
 // Display search results in the chat
 function displaySearchResults(results) {
@@ -64,12 +63,12 @@ function displaySearchResults(results) {
 
         const title = result.title || 'Untitled';
         const url = result.url || '#';
-        const content = result.content || '';
-        const snippet = content.length > 200 ? content.substring(0, 200) + '...' : content;
+        const snippet = result.snippet || '';
+        const displaySnippet = snippet.length > 200 ? snippet.substring(0, 200) + '...' : snippet;
 
         resultEl.innerHTML = `
             <a href="${url}" target="_blank" class="search-result-title">${title}</a>
-            <p class="search-result-content">${snippet}</p>
+            <p class="search-result-content">${displaySnippet}</p>
         `;
         searchInfo.appendChild(resultEl);
     });
@@ -81,5 +80,6 @@ function displaySearchResults(results) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 }
+
 
 console.log('Web search module loaded successfully');

@@ -673,6 +673,14 @@ async function handleSendMessage() {
         }
     }
 
+    // Detect and display cryptocurrency charts
+    if (typeof detectCrypto === 'function') {
+        const cryptoData = detectCrypto(message);
+        if (cryptoData.detected && cryptoData.tradingViewSymbols.length > 0) {
+            displayCryptoCharts(cryptoData);
+        }
+    }
+
     // Show loading indicator
     const loadingElement = showLoadingIndicator();
 
@@ -832,7 +840,7 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
 
     // Append search results to prompt if available
     if (searchResults && searchResults.results && searchResults.results.length > 0) {
-        const context = searchResults.results.map(r => `Title: ${r.title}\nSnippet: ${r.body}\nURL: ${r.href}`).join('\n\n');
+        const context = searchResults.results.map(r => `Title: ${r.title}\nSnippet: ${r.snippet}\nURL: ${r.url}`).join('\n\n');
         fullPrompt = `Context from web search:\n${context}\n\nUser Query: ${prompt}\n\nPlease answer the user's query using the provided context if relevant.`;
     }
 
@@ -1133,3 +1141,76 @@ function clearChat() {
 
     console.log('Chat cleared successfully');
 }
+
+// ============================================
+// Cryptocurrency Chart Display
+// ============================================
+
+/**
+ * Display cryptocurrency charts for detected symbols
+ * @param {Object} cryptoData - Crypto detection data from detectCrypto()
+ */
+function displayCryptoCharts(cryptoData) {
+    console.log('Displaying crypto charts for:', cryptoData);
+
+    // Create container for all charts
+    const chartsContainer = document.createElement('div');
+    chartsContainer.className = 'crypto-charts-wrapper';
+
+    // Display each detected symbol
+    cryptoData.tradingViewSymbols.forEach((symbol, index) => {
+        if (index >= 3) return; // Limit to 3 charts max
+
+        // Create chart container
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'crypto-chart-container';
+
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'crypto-chart-header';
+        header.innerHTML = `
+            <span class="crypto-symbol">${symbol}</span>
+            <span class="crypto-source">TradingView</span>
+        `;
+        chartContainer.appendChild(header);
+
+        // Create widget container with unique ID
+        const widgetId = `tradingview_${symbol}_${Date.now()}_${index}`;
+        const widgetContainer = document.createElement('div');
+        widgetContainer.id = widgetId;
+        widgetContainer.className = 'tradingview-widget-container';
+        widgetContainer.style.height = '400px';
+        chartContainer.appendChild(widgetContainer);
+
+        chartsContainer.appendChild(chartContainer);
+
+        // Initialize TradingView widget after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            if (typeof TradingView !== 'undefined') {
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": `BINANCE:${symbol}`,
+                    "interval": "D",
+                    "timezone": "Etc/UTC",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#1e1e28",
+                    "enable_publishing": false,
+                    "allow_symbol_change": true,
+                    "container_id": widgetId,
+                    "height": 400,
+                    "width": "100%"
+                });
+            } else {
+                console.error('TradingView library not loaded');
+                widgetContainer.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">TradingView library failed to load. Please refresh the page.</p>';
+            }
+        }, 100);
+    });
+
+    // Append to chat messages
+    elements.chatMessages.appendChild(chartsContainer);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+}
+
