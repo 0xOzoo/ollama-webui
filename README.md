@@ -13,6 +13,10 @@
 
 ## ✨ Features
 
+100% Made with Antigravity, sorry i'm bad at coding
+
+![image](https://media.discordapp.net/attachments/1385005627159351307/1442947986123522210/IMG_2469.jpg?ex=69274988&is=6925f808&hm=a6760efe54a40fa6e611d3aa66055bd3d1dbb8817ef7978a44f33286d726967d&=&format=webp)
+
 ### 🎨 Modern User Interface
 
 - **Premium Dark Theme** - Sleek glassmorphism design with blur effects and gradients
