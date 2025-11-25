@@ -776,6 +776,26 @@ function renderMessage(message) {
     messageEl.appendChild(avatarEl);
     messageEl.appendChild(contentEl);
 
+    // Add TTS button for assistant messages
+    if (message.role === 'assistant' && message.content) {
+        const ttsButton = document.createElement('button');
+        ttsButton.className = 'btn-tts';
+        ttsButton.title = 'Read aloud';
+        ttsButton.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+        `;
+
+        ttsButton.addEventListener('click', () => {
+            speakMessage(message.content, ttsButton);
+        });
+
+        messageEl.appendChild(ttsButton);
+    }
+
     elements.chatMessages.appendChild(messageEl);
     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 }
@@ -1212,5 +1232,79 @@ function displayCryptoCharts(cryptoData) {
     // Append to chat messages
     elements.chatMessages.appendChild(chartsContainer);
     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+}
+
+// ============================================
+// Text-to-Speech
+// ============================================
+
+let currentSpeech = null;
+let currentTTSButton = null;
+
+/**
+ * Speak a message using Web Speech API
+ * @param {string} text - Text to speak
+ * @param {HTMLElement} button - The TTS button element
+ */
+function speakMessage(text, button) {
+    // Check if speech synthesis is supported
+    if (!('speechSynthesis' in window)) {
+        alert('Text-to-speech is not supported in your browser.');
+        return;
+    }
+
+    // If currently speaking, stop
+    if (currentSpeech && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        if (currentTTSButton) {
+            currentTTSButton.classList.remove('speaking');
+        }
+        currentSpeech = null;
+        currentTTSButton = null;
+        return;
+    }
+
+    // Strip markdown and HTML from text
+    const cleanText = text
+        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+        .replace(/`[^`]+`/g, '') // Remove inline code
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+        .replace(/<[^>]+>/g, '') // Remove HTML tags
+        .replace(/[#*_~]/g, '') // Remove markdown formatting
+        .trim();
+
+    if (!cleanText) {
+        console.warn('No text to speak');
+        return;
+    }
+
+    // Create speech utterance
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    // Update button state
+    button.classList.add('speaking');
+    currentTTSButton = button;
+    currentSpeech = utterance;
+
+    // Handle speech end
+    utterance.onend = () => {
+        button.classList.remove('speaking');
+        currentSpeech = null;
+        currentTTSButton = null;
+    };
+
+    // Handle errors
+    utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        button.classList.remove('speaking');
+        currentSpeech = null;
+        currentTTSButton = null;
+    };
+
+    // Speak
+    window.speechSynthesis.speak(utterance);
 }
 

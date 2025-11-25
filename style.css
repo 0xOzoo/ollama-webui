@@ -932,6 +932,200 @@ body {
     background: rgba(0, 0, 0, 0.2);
 }
 
+@keyframes pulse-recording {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        transform: scale(1);
+    }
+}
+
+.visualizer-box {
+    flex: 1;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 16px;
+    margin: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) inset;
+}
+
+.recording-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.select-small {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-primary);
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    font-family: var(--font-family);
+    outline: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.select-small:hover {
+    border-color: var(--color-primary);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.select-small:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* Voice Preview Panel */
+.voice-preview-panel {
+    width: 100%;
+    max-width: 850px;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.98) 0%, rgba(20, 20, 30, 1) 100%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 28px;
+    padding: 16px 28px;
+    animation: slideUpFadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(102, 126, 234, 0.1) inset,
+        0 0 40px rgba(102, 126, 234, 0.15);
+    pointer-events: auto;
+    margin-bottom: var(--spacing-md);
+}
+
+.preview-waveform-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chat-header {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .header-info h1 {
+        font-size: var(--font-size-md);
+    }
+
+    .chat-messages {
+        padding: var(--spacing-md);
+    }
+
+    .message-content {
+        max-width: 80%;
+    }
+
+    .example-prompts {
+        grid-template-columns: 1fr;
+    }
+
+    .welcome-message h2 {
+        font-size: var(--font-size-xl);
+    }
+
+    .chat-input-container {
+        padding: var(--spacing-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .connection-status .status-text {
+        display: none;
+    }
+
+    .header-info {
+        display: none;
+    }
+
+    .message-content {
+        max-width: 85%;
+    }
+}
+
+/* ============================================
+   CRYPTOCURRENCY CHARTS
+   ============================================ */
+
+.crypto-charts-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
+    max-width: 900px;
+}
+
+.crypto-chart-container {
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.98) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 0 20px rgba(102, 126, 234, 0.1);
+    animation: slideUpFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.crypto-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.crypto-symbol {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.crypto-source {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tradingview-widget-container {
+    width: 100%;
+    height: 400px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+}
+
 .tradingview-widget-container__widget {
     width: 100%;
     height: 100%;
@@ -948,5 +1142,84 @@ body {
 
     .crypto-symbol {
         font-size: var(--font-size-md);
+    }
+}
+
+/* ============================================
+   TEXT-TO-SPEECH BUTTON
+   ============================================ */
+
+.btn-tts {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    background: rgba(30, 30, 40, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0;
+    transform: scale(0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.message.assistant:hover .btn-tts {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.btn-tts:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+    border-color: rgba(102, 126, 234, 0.4);
+    color: var(--color-text-primary);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-tts:active {
+    transform: scale(0.95);
+}
+
+.btn-tts.speaking {
+    opacity: 1;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+    border-color: rgba(102, 126, 234, 0.6);
+    color: #667eea;
+    animation: pulse-tts 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-tts {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(102, 126, 234, 0);
+    }
+}
+
+.btn-tts svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Ensure message has relative positioning for absolute TTS button */
+.message.assistant {
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .btn-tts {
+        opacity: 1;
+        transform: scale(1);
     }
 }
