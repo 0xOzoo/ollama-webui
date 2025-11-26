@@ -610,14 +610,9 @@ function loadMessages() {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-            console.log('Loaded messages from storage:', parsed);
             if (Array.isArray(parsed)) {
                 state.messages = parsed;
-                console.log('Rendering', state.messages.length, 'messages');
-                state.messages.forEach(msg => {
-                    console.log('Rendering message:', msg);
-                    renderMessage(msg);
-                });
+                state.messages.forEach(msg => renderMessage(msg));
             } else {
                 console.warn('Saved messages format invalid, resetting.');
                 localStorage.removeItem('ollama_chat_history');
@@ -937,7 +932,7 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
     // Get the last message element (the one we just added)
     const messageEls = elements.chatMessages.querySelectorAll('.message.assistant');
     const lastMessageEl = messageEls[messageEls.length - 1];
-    const contentEl = lastMessageEl.querySelector('.message-content');
+    const textContentEl = lastMessageEl.querySelector('.message-text');
 
     while (true) {
         const { done, value } = await reader.read();
@@ -957,7 +952,7 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
                     if (lastMessage && lastMessage.role === 'assistant') {
                         lastMessage.content = assistantMessage.content;
                     }
-                    contentEl.innerHTML = marked.parse(assistantMessage.content);
+                    textContentEl.innerHTML = marked.parse(assistantMessage.content);
                     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
                 }
             } catch (e) {
