@@ -610,9 +610,14 @@ function loadMessages() {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
+            console.log('Loaded messages from storage:', parsed);
             if (Array.isArray(parsed)) {
                 state.messages = parsed;
-                state.messages.forEach(msg => renderMessage(msg));
+                console.log('Rendering', state.messages.length, 'messages');
+                state.messages.forEach(msg => {
+                    console.log('Rendering message:', msg);
+                    renderMessage(msg);
+                });
             } else {
                 console.warn('Saved messages format invalid, resetting.');
                 localStorage.removeItem('ollama_chat_history');
@@ -702,6 +707,8 @@ async function handleSendMessage() {
     }
 }
 
+
+
 function addMessage(message) {
     state.messages.push(message);
     saveMessagesToStorage();
@@ -712,32 +719,34 @@ function renderMessage(message) {
     const messageEl = document.createElement('div');
     messageEl.className = `message ${message.role}`;
 
+    // Avatar
     const avatarEl = document.createElement('div');
     avatarEl.className = 'message-avatar';
 
     if (message.role === 'assistant') {
         avatarEl.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="url(#avatarGradient)"/>
-                <defs>
-                    <linearGradient id="avatarGradient" x1="4" y1="4" x2="20" y2="20">
-                        <stop offset="0%" stop-color="#667eea" />
-                        <stop offset="100%" stop-color="#764ba2" />
-                    </linearGradient>
-                </defs>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" fill="white" fill-opacity="0.9"/>
             </svg>
         `;
     } else {
         avatarEl.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="#e2e8f0"/>
-                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#64748b"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
             </svg>
         `;
+        avatarEl.style.color = '#a0a0b0';
     }
 
+    // Content Container
     const contentEl = document.createElement('div');
     contentEl.className = 'message-content';
+
+    // Text Content
+    const textContentEl = document.createElement('div');
+    textContentEl.className = 'message-text';
+    contentEl.appendChild(textContentEl);
 
     // Process message for media embeds
     if (typeof processMessageWithMedia === 'function') {
@@ -752,7 +761,7 @@ function renderMessage(message) {
                 textDiv.textContent = processed.text;
                 console.warn('Marked library not found, using plain text');
             }
-            contentEl.appendChild(textDiv);
+            textContentEl.appendChild(textDiv);
         }
 
         // Add media embeds
@@ -760,234 +769,76 @@ function renderMessage(message) {
             processed.embeds.forEach(embedHTML => {
                 const embedContainer = document.createElement('div');
                 embedContainer.innerHTML = embedHTML;
-                contentEl.appendChild(embedContainer.firstChild);
+                textContentEl.appendChild(embedContainer.firstChild);
             });
         }
     } else {
         // Fallback if media-embeds.js not loaded
         if (typeof marked !== 'undefined') {
-            contentEl.innerHTML = marked.parse(message.content);
+            textContentEl.innerHTML = marked.parse(message.content);
         } else {
-            contentEl.textContent = message.content;
+            textContentEl.textContent = message.content;
             console.warn('Marked library not found, using plain text');
         }
     }
 
-    messageEl.appendChild(avatarEl);
-    messageEl.appendChild(contentEl);
+    // Message Actions (Assistant Only)
+    if (message.role === 'assistant') {
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'message-actions';
 
-    // Add TTS button for assistant messages
-    if (message.role === 'assistant' && message.content) {
+        // Copy Button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'btn-action btn-copy';
+        copyButton.title = 'Copy text';
+        copyButton.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        `;
+
+        copyButton.addEventListener('click', () => {
+            const currentText = message.content || textContentEl.innerText;
+            navigator.clipboard.writeText(currentText).then(() => {
+                const originalIcon = copyButton.innerHTML;
+                copyButton.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                `;
+                copyButton.classList.add('active');
+                setTimeout(() => {
+                    copyButton.innerHTML = originalIcon;
+                    copyButton.classList.remove('active');
+                }, 2000);
+            });
+        });
+        actionsEl.appendChild(copyButton);
+
+        // TTS Button
         const ttsButton = document.createElement('button');
-        ttsButton.className = 'btn-tts';
+        ttsButton.className = 'btn-action btn-tts';
         ttsButton.title = 'Read aloud';
         ttsButton.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             </svg>
         `;
 
         ttsButton.addEventListener('click', () => {
-            speakMessage(message.content, ttsButton);
+            const currentText = message.content || textContentEl.innerText;
+            speakMessage(currentText, ttsButton);
         });
+        actionsEl.appendChild(ttsButton);
 
-        messageEl.appendChild(ttsButton);
+        // Append actions to content bubble
+        contentEl.appendChild(actionsEl);
     }
 
-    elements.chatMessages.appendChild(messageEl);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-}
 
-function showLoadingIndicator() {
-    const template = elements.loadingTemplate.content.cloneNode(true);
-    const loadingElement = template.querySelector('.message');
-    elements.chatMessages.appendChild(loadingElement);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-    return loadingElement;
-}
-
-function removeLoadingIndicator(element) {
-    if (element && element.parentNode) {
-        element.remove();
-    }
-}
-
-function showErrorMessage(text) {
-    const errorEl = document.createElement('div');
-    errorEl.className = 'error-message';
-    errorEl.textContent = text;
-    elements.chatMessages.appendChild(errorEl);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-
-    setTimeout(() => {
-        errorEl.remove();
-    }, 5000);
-}
-
-// ============================================
-// Ollama API Integration
-// ============================================
-async function checkConnection() {
-    try {
-        const response = await fetch(`${CONFIG.ollamaHost}/api/tags`);
-        if (response.ok) {
-            updateConnectionStatus(true);
-        } else {
-            updateConnectionStatus(false);
-        }
-    } catch (error) {
-        updateConnectionStatus(false);
-    }
-}
-
-function updateConnectionStatus(isConnected) {
-    const dot = elements.connectionStatus.querySelector('.status-dot');
-    const text = elements.connectionStatus.querySelector('.status-text');
-
-    if (isConnected) {
-        dot.style.backgroundColor = '#10b981';
-        text.textContent = 'Connected';
-    } else {
-        dot.style.backgroundColor = '#ef4444';
-        text.textContent = 'Disconnected';
-    }
-}
-
-async function sendToOllama(prompt, loadingElement, searchResults = null) {
-    let fullPrompt = prompt;
-
-    // Append search results to prompt if available
-    if (searchResults && searchResults.results && searchResults.results.length > 0) {
-        const context = searchResults.results.map(r => `Title: ${r.title}\nSnippet: ${r.snippet}\nURL: ${r.url}`).join('\n\n');
-        fullPrompt = `Context from web search:\n${context}\n\nUser Query: ${prompt}\n\nPlease answer the user's query using the provided context if relevant.`;
-    }
-
-    const response = await fetch(`${CONFIG.ollamaHost}/api/generate`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: CONFIG.model,
-            prompt: fullPrompt,
-            stream: true
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let assistantMessage = { role: 'assistant', content: '' };
-
-    // Replace loading indicator with empty message
-    removeLoadingIndicator(loadingElement);
-    addMessage(assistantMessage);
-
-    // Get the last message element (the one we just added)
-    const messageEls = elements.chatMessages.querySelectorAll('.message.assistant');
-    const lastMessageEl = messageEls[messageEls.length - 1];
-    const contentEl = lastMessageEl.querySelector('.message-content');
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-            if (!line) continue;
-            try {
-                const json = JSON.parse(line);
-                if (json.response) {
-                    assistantMessage.content += json.response;
-                    contentEl.innerHTML = marked.parse(assistantMessage.content);
-                    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-                }
-            } catch (e) {
-                console.error('Error parsing JSON chunk', e);
-            }
-        }
-    }
-
-}
-
-function addMessage(message) {
-    state.messages.push(message);
-    saveMessagesToStorage();
-    renderMessage(message);
-}
-
-function renderMessage(message) {
-    const messageEl = document.createElement('div');
-    messageEl.className = `message ${message.role}`;
-
-    const avatarEl = document.createElement('div');
-    avatarEl.className = 'message-avatar';
-
-    if (message.role === 'assistant') {
-        avatarEl.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="url(#avatarGradient)"/>
-                <defs>
-                    <linearGradient id="avatarGradient" x1="4" y1="4" x2="20" y2="20">
-                        <stop offset="0%" stop-color="#667eea" />
-                        <stop offset="100%" stop-color="#764ba2" />
-                    </linearGradient>
-                </defs>
-            </svg>
-        `;
-    } else {
-        avatarEl.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="#e2e8f0"/>
-                <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#64748b"/>
-            </svg>
-        `;
-    }
-
-    const contentEl = document.createElement('div');
-    contentEl.className = 'message-content';
-
-    // Process message for media embeds
-    if (typeof processMessageWithMedia === 'function') {
-        const processed = processMessageWithMedia(message.content);
-
-        // Add text content if present
-        if (processed.text && processed.text.trim()) {
-            const textDiv = document.createElement('div');
-            if (typeof marked !== 'undefined') {
-                textDiv.innerHTML = marked.parse(processed.text);
-            } else {
-                textDiv.textContent = processed.text;
-                console.warn('Marked library not found, using plain text');
-            }
-            contentEl.appendChild(textDiv);
-        }
-
-        // Add media embeds
-        if (processed.embeds && processed.embeds.length > 0) {
-            processed.embeds.forEach(embedHTML => {
-                const embedContainer = document.createElement('div');
-                embedContainer.innerHTML = embedHTML;
-                contentEl.appendChild(embedContainer.firstChild);
-            });
-        }
-    } else {
-        // Fallback if media-embeds.js not loaded
-        if (typeof marked !== 'undefined') {
-            contentEl.innerHTML = marked.parse(message.content);
-        } else {
-            contentEl.textContent = message.content;
-            console.warn('Marked library not found, using plain text');
-        }
-    }
-
+    // Assemble Message
     messageEl.appendChild(avatarEl);
     messageEl.appendChild(contentEl);
 
@@ -1101,6 +952,11 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
                 const json = JSON.parse(line);
                 if (json.response) {
                     assistantMessage.content += json.response;
+                    // Update the message in state.messages
+                    const lastMessage = state.messages[state.messages.length - 1];
+                    if (lastMessage && lastMessage.role === 'assistant') {
+                        lastMessage.content = assistantMessage.content;
+                    }
                     contentEl.innerHTML = marked.parse(assistantMessage.content);
                     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
                 }
@@ -1110,6 +966,9 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
         }
     }
 
+    // Save messages after streaming is complete
+    saveMessagesToStorage();
+    console.log('Message streaming complete, saved to storage');
 }
 
 
