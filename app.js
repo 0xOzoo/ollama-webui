@@ -90,6 +90,9 @@ function init() {
     // Setup Event Listeners
     setupEventListeners();
 
+    // Initialize Settings
+    initSettings();
+
     // Check connection
     checkConnection();
 
@@ -1118,13 +1121,14 @@ function speakMessage(text, button) {
         return;
     }
 
-    // Strip markdown and HTML from text
+    // Strip markdown, HTML, and Emojis from text
     const cleanText = text
         .replace(/```[\s\S]*?```/g, '') // Remove code blocks
         .replace(/`[^`]+`/g, '') // Remove inline code
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
         .replace(/<[^>]+>/g, '') // Remove HTML tags
         .replace(/[#*_~]/g, '') // Remove markdown formatting
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // Remove Emojis
         .trim();
 
     if (!cleanText) {
@@ -1134,9 +1138,21 @@ function speakMessage(text, button) {
 
     // Create speech utterance
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 1.0;
+    utterance.rate = 1.1; // Slightly faster
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
+
+    // Try to select a better voice
+    const voices = window.speechSynthesis.getVoices();
+    // Prefer "Google", "Microsoft", "Natural" voices that match the system language
+    const preferredVoice = voices.find(voice =>
+        (voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Natural')) &&
+        voice.lang.startsWith(navigator.language.split('-')[0])
+    );
+
+    if (preferredVoice) {
+        utterance.voice = preferredVoice;
+    }
 
     // Update button state
     button.classList.add('speaking');
@@ -1160,5 +1176,300 @@ function speakMessage(text, button) {
 
     // Speak
     window.speechSynthesis.speak(utterance);
+}
+
+// ============================================
+// Settings & Translations
+// ============================================
+
+const translations = {
+    en: {
+        settingsTitle: "Settings",
+        displayTitle: "Display",
+        languageLabel: "Language",
+        themeLabel: "Theme",
+        darkLabel: "Dark",
+        lightLabel: "Light",
+        voiceTitle: "Voice Recognition",
+        micLabel: "Microphone",
+        voiceLangLabel: "Recognition Language",
+        ollamaTitle: "Ollama",
+        modelLabel: "Model",
+        pullModelLabel: "Pull New Model",
+        pullBtn: "Pull",
+        pulling: "Pulling...",
+        success: "Success!",
+        error: "Error",
+        welcomeTitle: "Welcome to Ollama WebUI",
+        welcomeText: "Start a conversation with your AI assistant. I'm running locally on your machine using the",
+        example1: "👋 Introduce yourself",
+        example2: "🤖 Your capabilities",
+        example3: "✨ Creative story",
+        example4: "🔬 Explain a concept",
+        inputPlaceholder: "Message Gemma...",
+        webSearchOn: "Web Search: On",
+        webSearchOff: "Web Search: Off",
+        clearChat: "Clear chat",
+        attachFile: "Attach file",
+        voiceMessage: "Voice message",
+        sendMessage: "Send message",
+        stopRecording: "Stop Recording",
+        playPause: "Play/Pause",
+        discard: "Discard",
+        send: "Send"
+    },
+    fr: {
+        settingsTitle: "Paramètres",
+        displayTitle: "Affichage",
+        languageLabel: "Langue",
+        themeLabel: "Thème",
+        darkLabel: "Sombre",
+        lightLabel: "Clair",
+        voiceTitle: "Reconnaissance Vocale",
+        micLabel: "Microphone",
+        voiceLangLabel: "Langue de reconnaissance",
+        ollamaTitle: "Ollama",
+        modelLabel: "Modèle",
+        pullModelLabel: "Télécharger un modèle",
+        pullBtn: "Télécharger",
+        pulling: "Téléchargement...",
+        success: "Succès !",
+        error: "Erreur",
+        welcomeTitle: "Bienvenue sur Ollama WebUI",
+        welcomeText: "Commencez une conversation avec votre assistant IA. Je fonctionne localement sur votre machine avec le modèle",
+        example1: "👋 Présente-toi",
+        example2: "🤖 Tes capacités",
+        example3: "✨ Histoire créative",
+        example4: "🔬 Explique un concept",
+        inputPlaceholder: "Envoyez un message...",
+        webSearchOn: "Recherche Web : Activée",
+        webSearchOff: "Recherche Web : Désactivée",
+        clearChat: "Effacer la discussion",
+        attachFile: "Joindre un fichier",
+        voiceMessage: "Message vocal",
+        sendMessage: "Envoyer",
+        stopRecording: "Arrêter l'enregistrement",
+        playPause: "Lecture/Pause",
+        discard: "Annuler",
+        send: "Envoyer"
+    }
+};
+
+function initSettings() {
+    // State
+    state.settings = {
+        language: localStorage.getItem('ollama_lang') || 'en',
+        theme: localStorage.getItem('ollama_theme') || 'dark',
+        voiceLang: localStorage.getItem('ollama_voice_lang') || 'en-US'
+    };
+
+    // Elements
+    elements.settingsButton = document.getElementById('settingsButton');
+    elements.settingsModal = document.getElementById('settingsModal');
+    elements.closeSettings = document.getElementById('closeSettings');
+    elements.appLanguage = document.getElementById('appLanguage');
+    elements.themeDark = document.getElementById('themeDark');
+    elements.themeLight = document.getElementById('themeLight');
+    elements.settingsMicSelect = document.getElementById('settingsMicSelect');
+    elements.settingsVoiceLang = document.getElementById('settingsVoiceLang');
+    elements.settingsModelSelect = document.getElementById('settingsModelSelect');
+    elements.refreshModels = document.getElementById('refreshModels');
+    elements.pullModelInput = document.getElementById('pullModelInput');
+    elements.pullModelBtn = document.getElementById('pullModelBtn');
+    elements.pullProgress = document.getElementById('pullProgress');
+
+    // Initialize UI
+    applyTheme(state.settings.theme);
+    applyLanguage(state.settings.language);
+    elements.appLanguage.value = state.settings.language;
+    elements.settingsVoiceLang.value = state.settings.voiceLang;
+
+    // Event Listeners
+    elements.settingsButton.addEventListener('click', () => {
+        elements.settingsModal.style.display = 'flex';
+        setTimeout(() => elements.settingsModal.classList.add('active'), 10);
+        loadOllamaModels();
+        populateMicSelect();
+    });
+
+    elements.closeSettings.addEventListener('click', () => {
+        elements.settingsModal.classList.remove('active');
+        setTimeout(() => elements.settingsModal.style.display = 'none', 300);
+    });
+
+    elements.settingsModal.addEventListener('click', (e) => {
+        if (e.target === elements.settingsModal) {
+            elements.closeSettings.click();
+        }
+    });
+
+    elements.appLanguage.addEventListener('change', (e) => {
+        const lang = e.target.value;
+        state.settings.language = lang;
+        localStorage.setItem('ollama_lang', lang);
+        applyLanguage(lang);
+    });
+
+    elements.themeDark.addEventListener('click', () => applyTheme('dark'));
+    elements.themeLight.addEventListener('click', () => applyTheme('light'));
+
+    elements.settingsVoiceLang.addEventListener('change', (e) => {
+        state.settings.voiceLang = e.target.value;
+        localStorage.setItem('ollama_voice_lang', e.target.value);
+        if (voiceState.recognition) {
+            voiceState.recognition.lang = state.settings.voiceLang;
+        }
+    });
+
+    elements.settingsMicSelect.addEventListener('change', (e) => {
+        // Just update the main mic select which handles the logic
+        const mainMicSelect = document.getElementById('micSelect');
+        if (mainMicSelect) {
+            mainMicSelect.value = e.target.value;
+            // Trigger change event if needed, but usually just setting value is enough for next recording
+        }
+    });
+
+    elements.refreshModels.addEventListener('click', loadOllamaModels);
+
+    elements.settingsModelSelect.addEventListener('change', (e) => {
+        CONFIG.model = e.target.value;
+        document.querySelector('.model-name').textContent = CONFIG.model;
+        // Update welcome message model name
+        const welcomeP = document.querySelector('.welcome-message p strong');
+        if (welcomeP) welcomeP.textContent = CONFIG.model;
+    });
+
+    elements.pullModelBtn.addEventListener('click', async () => {
+        const modelName = elements.pullModelInput.value.trim();
+        if (!modelName) return;
+
+        elements.pullModelBtn.disabled = true;
+        elements.pullModelBtn.textContent = translations[state.settings.language].pulling;
+        elements.pullProgress.style.display = 'block';
+        const progressFill = elements.pullProgress.querySelector('.progress-fill');
+        const progressText = elements.pullProgress.querySelector('.progress-text');
+
+        try {
+            const response = await fetch(`${CONFIG.ollamaHost}/api/pull`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: modelName, stream: true })
+            });
+
+            if (!response.ok) throw new Error('Pull failed');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (!line) continue;
+                    try {
+                        const json = JSON.parse(line);
+                        if (json.total && json.completed) {
+                            const percent = Math.round((json.completed / json.total) * 100);
+                            progressFill.style.width = `${percent}%`;
+                            progressText.textContent = `${percent}%`;
+                        }
+                    } catch (e) { }
+                }
+            }
+
+            elements.pullModelBtn.textContent = translations[state.settings.language].success;
+            setTimeout(() => {
+                elements.pullModelBtn.textContent = translations[state.settings.language].pullBtn;
+                elements.pullModelBtn.disabled = false;
+                elements.pullProgress.style.display = 'none';
+                elements.pullModelInput.value = '';
+                loadOllamaModels(); // Refresh list
+            }, 2000);
+
+        } catch (error) {
+            console.error('Pull error:', error);
+            elements.pullModelBtn.textContent = translations[state.settings.language].error;
+            setTimeout(() => {
+                elements.pullModelBtn.textContent = translations[state.settings.language].pullBtn;
+                elements.pullModelBtn.disabled = false;
+            }, 2000);
+        }
+    });
+}
+
+function applyTheme(theme) {
+    state.settings.theme = theme;
+    localStorage.setItem('ollama_theme', theme);
+
+    if (theme === 'light') {
+        document.body.classList.add('light-mode');
+        elements.themeLight.classList.add('active');
+        elements.themeDark.classList.remove('active');
+    } else {
+        document.body.classList.remove('light-mode');
+        elements.themeDark.classList.add('active');
+        elements.themeLight.classList.remove('active');
+    }
+}
+
+function applyLanguage(lang) {
+    const t = translations[lang];
+    if (!t) return;
+
+    // Update text content for elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) el.textContent = t[key];
+    });
+
+    // Update placeholders and titles
+    if (elements.messageInput) elements.messageInput.placeholder = t.inputPlaceholder;
+    if (elements.webSearchToggle) elements.webSearchToggle.title = CONFIG.webSearchEnabled ? t.webSearchOn : t.webSearchOff;
+    if (elements.clearChatButton) elements.clearChatButton.title = t.clearChat;
+    if (elements.fileButton) elements.fileButton.title = t.attachFile;
+    if (elements.voiceButton) elements.voiceButton.title = t.voiceMessage;
+    if (elements.sendButton) elements.sendButton.title = t.sendMessage;
+
+    // Update example prompts if welcome message is visible
+    const examples = document.querySelectorAll('.example-prompt');
+    if (examples.length >= 4) {
+        examples[0].textContent = t.example1;
+        examples[1].textContent = t.example2;
+        examples[2].textContent = t.example3;
+        examples[3].textContent = t.example4;
+    }
+}
+
+async function loadOllamaModels() {
+    try {
+        const response = await fetch(`${CONFIG.ollamaHost}/api/tags`);
+        if (response.ok) {
+            const data = await response.json();
+            elements.settingsModelSelect.innerHTML = '';
+            data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.name;
+                option.textContent = model.name;
+                if (model.name === CONFIG.model) option.selected = true;
+                elements.settingsModelSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load models:', error);
+    }
+}
+
+function populateMicSelect() {
+    // Clone options from main mic select to settings mic select
+    const mainMicSelect = document.getElementById('micSelect');
+    if (mainMicSelect && elements.settingsMicSelect) {
+        elements.settingsMicSelect.innerHTML = mainMicSelect.innerHTML;
+        elements.settingsMicSelect.value = mainMicSelect.value;
+    }
 }
 
