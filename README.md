@@ -78,7 +78,7 @@
 - **Connection Status** - Real-time Ollama connection indicator
 - **Auto-Resize Input** - Text area grows as you type
 - **Keyboard Shortcuts** - Enter to send, Shift+Enter for new line
-- - **Customisable settings** - Easy to understand, make any changes in seconds.
+- **Customisable settings** - Easy to understand, make any changes in seconds.
  
 <img width="616" height="1071" alt="image" src="https://github.com/user-attachments/assets/70ea9eaf-9acc-440c-880d-afaa5b79a51f" />
 
