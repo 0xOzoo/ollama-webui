@@ -33,6 +33,9 @@
 - **Markdown Support** - Full support for formatted text, code blocks, lists, and more
 - **Media Embeds** - Automatic detection and embedding of YouTube videos, images, and links
 - **Example Prompts** - Quick-start suggestions for new conversations
+-  **Downloadables models** - Download and start any Ollama models, directly in app.
+
+  
 
 ### 🔍 Web Search Integration
 
@@ -58,7 +61,8 @@
 - **Multi-Language** - Support for 8+ languages (English, French, Spanish, German, etc.)
 - **Audio Preview** - Play back recordings before sending
 
-![voice feature](image.png)
+<img width="1045" height="306" alt="image" src="https://github.com/user-attachments/assets/78f8e2ff-27ed-4620-984c-cf394acb90c5" />
+
 
 ### 🗣️ Text-to-Speech (TTS)
 
@@ -74,6 +78,10 @@
 - **Connection Status** - Real-time Ollama connection indicator
 - **Auto-Resize Input** - Text area grows as you type
 - **Keyboard Shortcuts** - Enter to send, Shift+Enter for new line
+- - **Customisable settings** - Easy to understand, make any changes in seconds.
+ 
+<img width="616" height="1071" alt="image" src="https://github.com/user-attachments/assets/70ea9eaf-9acc-440c-880d-afaa5b79a51f" />
+
 
 ---
 
