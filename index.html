@@ -326,9 +326,16 @@
                     <div class="setting-item">
                         <label data-i18n="ttsVoiceLabel">Voix</label>
                         <select id="ttsVoice" class="select-full">
-                            <option value="male">Voix masculine</option>
-                            <option value="female">Voix féminine</option>
+                            <option value="">Chargement des voix...</option>
                         </select>
+                        <button id="previewVoice"
+                            style="margin-top: 8px; display: none; width: 100%; justify-content: center; align-items: center; gap: 8px; padding: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--color-text-primary); cursor: pointer;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Prévisualiser la voix
+                        </button>
                     </div>
                 </div>
                 <!-- Ollama Settings -->

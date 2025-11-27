@@ -1197,12 +1197,11 @@ function displayCryptoCharts(cryptoData) {
 
 let currentSpeech = null;
 let currentTTSButton = null;
-
 // TTS Configuration object
 const TTSConfig = {
     speed: 1.0,
     volume: 0.8,
-    voiceGender: 'female',
+    voiceURI: null,
 
     load() {
         const saved = localStorage.getItem('ttsSettings');
@@ -1210,7 +1209,7 @@ const TTSConfig = {
             const settings = JSON.parse(saved);
             this.speed = settings.speed || 1.0;
             this.volume = settings.volume || 0.8;
-            this.voiceGender = settings.voiceGender || 'female';
+            this.voiceURI = settings.voiceURI || null;
         }
     },
 
@@ -1218,7 +1217,7 @@ const TTSConfig = {
         localStorage.setItem('ttsSettings', JSON.stringify({
             speed: this.speed,
             volume: this.volume,
-            voiceGender: this.voiceGender
+            voiceURI: this.voiceURI
         }));
     }
 };
@@ -1231,18 +1230,57 @@ function initTTSSettings() {
     const ttsVolumeSlider = document.getElementById('ttsVolume');
     const ttsVolumeValue = document.getElementById('ttsVolumeValue');
     const ttsVoiceSelect = document.getElementById('ttsVoice');
+    const previewButton = document.getElementById('previewVoice');
 
     if (!ttsSpeedSlider || !ttsVolumeSlider || !ttsVoiceSelect) {
         console.warn('TTS controls not found in DOM');
         return;
     }
 
+    // Initialize values
     ttsSpeedSlider.value = TTSConfig.speed;
     ttsSpeedValue.textContent = TTSConfig.speed.toFixed(1) + 'x';
     ttsVolumeSlider.value = TTSConfig.volume * 100;
     ttsVolumeValue.textContent = Math.round(TTSConfig.volume * 100) + '%';
-    ttsVoiceSelect.value = TTSConfig.voiceGender;
 
+    // Populate voices
+    function populateVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        ttsVoiceSelect.innerHTML = '';
+
+        if (voices.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = "Aucune voix disponible";
+            ttsVoiceSelect.appendChild(option);
+            return;
+        }
+
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.voiceURI;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            if (voice.voiceURI === TTSConfig.voiceURI) {
+                option.selected = true;
+            }
+            ttsVoiceSelect.appendChild(option);
+        });
+
+        // If no voice selected or saved voice not found, select the first one
+        if (!TTSConfig.voiceURI || !voices.find(v => v.voiceURI === TTSConfig.voiceURI)) {
+            if (voices.length > 0) {
+                TTSConfig.voiceURI = voices[0].voiceURI;
+                ttsVoiceSelect.value = voices[0].voiceURI;
+                TTSConfig.save();
+            }
+        }
+    }
+
+    populateVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = populateVoices;
+    }
+
+    // Event Listeners
     ttsSpeedSlider.addEventListener('input', (e) => {
         const value = parseFloat(e.target.value);
         TTSConfig.speed = value;
@@ -1258,48 +1296,30 @@ function initTTSSettings() {
     });
 
     ttsVoiceSelect.addEventListener('change', (e) => {
-        TTSConfig.voiceGender = e.target.value;
+        TTSConfig.voiceURI = e.target.value;
         TTSConfig.save();
     });
 
-    console.log('TTS settings initialized:', TTSConfig);
-}
+    if (previewButton) {
+        previewButton.style.display = 'flex'; // Show the button
+        previewButton.addEventListener('click', () => {
+            const text = "Ceci est un test de voix pour l'assistant Ollama.";
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = TTSConfig.speed;
+            utterance.volume = TTSConfig.volume;
 
-function getPreferredVoice() {
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) return null;
+            const voices = window.speechSynthesis.getVoices();
+            const selectedVoice = voices.find(v => v.voiceURI === TTSConfig.voiceURI);
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
 
-    const lang = navigator.language || 'en-US';
-    const langCode = lang.split('-')[0];
-
-    let filteredVoices = voices.filter(voice => {
-        const matchesLang = voice.lang.startsWith(langCode);
-        const voiceName = voice.name.toLowerCase();
-
-        const isFemale = voiceName.includes('female') || voiceName.includes('woman') ||
-            voiceName.includes('zira') || voiceName.includes('hazel') ||
-            voiceName.includes('susan') || voiceName.includes('samantha');
-
-        const isMale = voiceName.includes('male') || voiceName.includes('man') ||
-            voiceName.includes('david') || voiceName.includes('mark') ||
-            voiceName.includes('daniel');
-
-        if (TTSConfig.voiceGender === 'female') {
-            return matchesLang && (isFemale || (!isMale && !isFemale));
-        } else {
-            return matchesLang && (isMale || (!isMale && !isFemale));
-        }
-    });
-
-    if (filteredVoices.length === 0) {
-        filteredVoices = voices.filter(voice => voice.lang.startsWith(langCode));
+            window.speechSynthesis.cancel(); // Stop any current speech
+            window.speechSynthesis.speak(utterance);
+        });
     }
 
-    const preferredVoice = filteredVoices.find(voice =>
-        voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Natural')
-    );
-
-    return preferredVoice || filteredVoices[0] || voices[0];
+    console.log('TTS settings initialized:', TTSConfig);
 }
 
 /**
@@ -1346,11 +1366,12 @@ function speakMessage(text, button) {
     utterance.volume = TTSConfig.volume;
     utterance.pitch = 1.0;
 
-    // Use preferred voice based on gender selection
-    const preferredVoice = getPreferredVoice();
-    if (preferredVoice) {
-        utterance.voice = preferredVoice;
-        console.log('Using voice:', preferredVoice.name, '(Gender:', TTSConfig.voiceGender + ')');
+    // Use preferred voice based on selection
+    const voices = window.speechSynthesis.getVoices();
+    const selectedVoice = voices.find(v => v.voiceURI === TTSConfig.voiceURI);
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        console.log('Using voice:', selectedVoice.name);
     }
 
     // Update button state
