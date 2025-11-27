@@ -1274,7 +1274,7 @@ function initSettings() {
     elements.settingsVoiceLang = document.getElementById('settingsVoiceLang');
     elements.settingsModelSelect = document.getElementById('settingsModelSelect');
     elements.refreshModels = document.getElementById('refreshModels');
-    elements.pullModelInput = document.getElementById('pullModelInput');
+    elements.pullModelSelect = document.getElementById('pullModelSelect');
     elements.pullModelBtn = document.getElementById('pullModelBtn');
     elements.pullProgress = document.getElementById('pullProgress');
 
@@ -1289,6 +1289,7 @@ function initSettings() {
         elements.settingsModal.style.display = 'flex';
         setTimeout(() => elements.settingsModal.classList.add('active'), 10);
         loadOllamaModels();
+        loadAvailableModels();
         populateMicSelect();
     });
 
@@ -1347,7 +1348,7 @@ function initSettings() {
             }
 
             // Trigger pull
-            elements.pullModelInput.value = modelName;
+            elements.pullModelSelect.value = modelName;
             elements.pullModelBtn.click();
 
             // Reset selection to current model
@@ -1364,8 +1365,11 @@ function initSettings() {
     });
 
     elements.pullModelBtn.addEventListener('click', async () => {
-        const modelName = elements.pullModelInput.value.trim();
-        if (!modelName) return;
+        const modelName = elements.pullModelSelect.value.trim();
+        if (!modelName) {
+            alert('Please select a model to download');
+            return;
+        }
 
         elements.pullModelBtn.disabled = true;
         elements.pullModelBtn.textContent = translations[state.settings.language].pulling;
@@ -1410,8 +1414,9 @@ function initSettings() {
                 elements.pullModelBtn.textContent = translations[state.settings.language].pullBtn;
                 elements.pullModelBtn.disabled = false;
                 elements.pullProgress.style.display = 'none';
-                elements.pullModelInput.value = '';
+                elements.pullModelSelect.value = '';
                 loadOllamaModels(); // Refresh list
+                loadAvailableModels(); // Refresh available models
             }, 2000);
 
         } catch (error) {
@@ -1570,6 +1575,83 @@ async function populateMicSelect() {
         }
     } catch (error) {
         console.error('Error enumerating microphones:', error);
+    }
+}
+
+async function loadAvailableModels() {
+    try {
+        if (!elements.pullModelSelect) return;
+
+        elements.pullModelSelect.innerHTML = '<option value="">Loading...</option>';
+
+        // Static list of popular Ollama models
+        const popularModels = [
+            { name: 'llama3.2', size: '2GB', description: 'Latest Llama 3.2' },
+            { name: 'llama3.2:1b', size: '1.3GB', description: 'Llama 3.2 1B' },
+            { name: 'llama3.1', size: '4.7GB', description: 'Llama 3.1 8B' },
+            { name: 'llama3.1:70b', size: '40GB', description: 'Llama 3.1 70B' },
+            { name: 'llama3.1:405b', size: '231GB', description: 'Llama 3.1 405B' },
+            { name: 'phi3', size: '2.3GB', description: 'Microsoft Phi-3' },
+            { name: 'phi3:medium', size: '7.9GB', description: 'Phi-3 Medium' },
+            { name: 'gemma2', size: '5.4GB', description: 'Google Gemma 2' },
+            { name: 'gemma2:2b', size: '1.6GB', description: 'Gemma 2 2B' },
+            { name: 'gemma2:27b', size: '16GB', description: 'Gemma 2 27B' },
+            { name: 'mistral', size: '4.1GB', description: 'Mistral 7B' },
+            { name: 'mistral-nemo', size: '7.1GB', description: 'Mistral Nemo' },
+            { name: 'mixtral', size: '26GB', description: 'Mixtral 8x7B' },
+            { name: 'mixtral:8x22b', size: '80GB', description: 'Mixtral 8x22B' },
+            { name: 'qwen2.5', size: '4.7GB', description: 'Qwen 2.5' },
+            { name: 'qwen2.5:72b', size: '41GB', description: 'Qwen 2.5 72B' },
+            { name: 'codellama', size: '3.8GB', description: 'Code Llama' },
+            { name: 'codellama:70b', size: '39GB', description: 'Code Llama 70B' },
+            { name: 'deepseek-coder-v2', size: '8.9GB', description: 'DeepSeek Coder V2' },
+            { name: 'command-r', size: '20GB', description: 'Cohere Command R' },
+            { name: 'command-r-plus', size: '52GB', description: 'Cohere Command R+' },
+            { name: 'llava', size: '4.7GB', description: 'LLaVA (Vision)' },
+            { name: 'llava:34b', size: '20GB', description: 'LLaVA 34B' },
+            { name: 'nomic-embed-text', size: '274MB', description: 'Nomic Embeddings' },
+            { name: 'mxbai-embed-large', size: '669MB', description: 'MixedBread Embeddings' },
+            { name: 'all-minilm', size: '46MB', description: 'All-MiniLM Embeddings' }
+        ];
+
+        // Fetch local models to filter them out
+        let installedModels = [];
+        try {
+            const localResponse = await fetch(`${CONFIG.ollamaHost}/api/tags`);
+            if (localResponse.ok) {
+                const data = await localResponse.json();
+                installedModels = data.models.map(m => m.name);
+            }
+        } catch (error) {
+            console.warn('Could not fetch installed models:', error);
+        }
+
+        // Clear and populate
+        elements.pullModelSelect.innerHTML = '<option value="">Select a model to download...</option>';
+
+        // Filter out installed models
+        const modelsToShow = popularModels.filter(model =>
+            !installedModels.some(installed =>
+                installed === model.name || installed.startsWith(model.name + ':')
+            )
+        );
+
+        modelsToShow.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.name;
+            option.textContent = `${model.name} - ${model.description} (${model.size})`;
+            elements.pullModelSelect.appendChild(option);
+        });
+
+        if (modelsToShow.length === 0) {
+            elements.pullModelSelect.innerHTML = '<option value="">All popular models are already installed</option>';
+        }
+
+    } catch (error) {
+        console.error('Failed to load available models:', error);
+        if (elements.pullModelSelect) {
+            elements.pullModelSelect.innerHTML = '<option value="">Error loading models</option>';
+        }
     }
 }
 
