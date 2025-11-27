@@ -33,9 +33,7 @@
 - **Markdown Support** - Full support for formatted text, code blocks, lists, and more
 - **Media Embeds** - Automatic detection and embedding of YouTube videos, images, and links
 - **Example Prompts** - Quick-start suggestions for new conversations
--  **Downloadables models** - Download and start any Ollama models, directly in app.
-
-  
+- **Downloadables models** - Download and start any Ollama models, directly in app.
 
 ### 🔍 Web Search Integration
 
@@ -63,7 +61,6 @@
 
 <img width="1045" height="306" alt="image" src="https://github.com/user-attachments/assets/78f8e2ff-27ed-4620-984c-cf394acb90c5" />
 
-
 ### 🗣️ Text-to-Speech (TTS)
 
 - **Dynamic Voice Selection** - Choose from any available system voice
@@ -79,15 +76,21 @@
 - **Auto-Resize Input** - Text area grows as you type
 - **Keyboard Shortcuts** - Enter to send, Shift+Enter for new line
 - **Customisable settings** - Easy to understand, make any changes in seconds.
- 
-<img width="616" height="1071" alt="image" src="https://github.com/user-attachments/assets/70ea9eaf-9acc-440c-880d-afaa5b79a51f" />
 
+<img width="616" height="1071" alt="image" src="https://github.com/user-attachments/assets/70ea9eaf-9acc-440c-880d-afaa5b79a51f" />
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
+**Option 1: Docker (Easiest)**
+
+- [Docker](https://www.docker.com/get-started) and Docker Compose
+- A modern web browser
+
+**Option 2: Manual Setup**
 
 - [Ollama](https://ollama.ai/) installed and running
 - Node.js (for the web server)
@@ -125,9 +128,23 @@ docker-compose up -d
 
 This will start:
 
-- WebUI on port **8080**
-- Search Proxy on port **8081**
-- Connect to your local Ollama instance
+- **Ollama** on port **11434** (with persistent model storage)
+- **WebUI** on port **8080**
+- **Search Proxy** on port **8081**
+
+**First-time setup:**
+
+After starting the containers, download a model:
+
+```bash
+docker exec -it ollama-webui-ollama-1 ollama pull gemma3:4b
+```
+
+**GPU Support (Optional):**
+
+To enable GPU acceleration, uncomment the GPU section in `docker-compose.yml` and ensure you have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed.
+
+**Note:** Models are stored in a Docker volume (`ollama_data`) and persist across container restarts.
 
 4. **Open in browser:**
 

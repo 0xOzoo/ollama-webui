@@ -1,0 +1,9 @@
+.git
+.gitignore
+*.md
+!README.md
+node_modules
+*.bat
+test-*.js
+header_fix.txt
+image.png
