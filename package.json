@@ -1,0 +1,23 @@
+{
+  "name": "ollama-webui",
+  "version": "1.0.0",
+  "description": "A modern chat interface for Ollama",
+  "main": "app.js",
+  "scripts": {
+    "start": "concurrently \"node search-server.js\" \"serve -l 8080\"",
+    "search-server": "node search-server.js",
+    "web-server": "serve -l 8080"
+  },
+  "keywords": [
+    "ollama",
+    "chat",
+    "ai",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "serve": "^14.2.1"
+  }
+}

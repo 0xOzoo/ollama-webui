@@ -107,6 +107,20 @@
    ./start.bat
    ```
 
+### 🐳 Docker (Recommended)
+
+Run the entire stack with a single command:
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+
+- WebUI on port **8080**
+- Search Proxy on port **8081**
+- Connect to your local Ollama instance
+
 4. **Open in browser:**
 
    Navigate to: **<http://localhost:8080>**
