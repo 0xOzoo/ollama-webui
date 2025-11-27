@@ -1144,3 +1144,14 @@ body.light-mode .btn-icon-input:hover {
     display: flex;
     gap: var(--spacing-sm);
 }
+/* Dark Mode Dropdown Fix - Added missing variables and option styles */
+:root {
+    --color-bg-primary: #0a0a0f;
+    --color-bg-secondary: #1a1a2e;
+}
+
+/* Ensure dropdown options are readable in dark mode */
+select option {
+    background-color: #1a1a2e;
+    color: #ffffff;
+}
