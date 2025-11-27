@@ -26,7 +26,6 @@
 
   <img width="3438" height="1311" alt="image" src="https://github.com/user-attachments/assets/c6084cde-5aa9-4a27-839d-3c8950dda9c5" />
 
-
 ### 💬 Chat Capabilities
 
 - **Real-time Streaming** - See AI responses as they're generated, token by token
@@ -52,7 +51,6 @@
 
 <img width="3440" height="1325" alt="image" src="https://github.com/user-attachments/assets/1190621d-ff5c-4a07-bdf1-102b09ff8720" />
 
-
 ### 🎤 Voice Features
 
 - **Voice Recording** - Record voice messages with audio visualization
@@ -61,6 +59,13 @@
 - **Audio Preview** - Play back recordings before sending
 
 ![voice feature](image.png)
+
+### 🗣️ Text-to-Speech (TTS)
+
+- **Dynamic Voice Selection** - Choose from any available system voice
+- **Customizable Settings** - Adjust reading speed and volume
+- **Voice Preview** - Test voices before using them
+- **Auto-Read** - Option to read AI responses automatically (configurable)
 
 ### 🛠️ Additional Features
 
