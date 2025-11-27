@@ -4,9 +4,10 @@
   "description": "A modern chat interface for Ollama",
   "main": "app.js",
   "scripts": {
-    "start": "concurrently \"node search-server.js\" \"serve -l 8080\"",
+    "start": "concurrently \"node search-server.js\" \"serve -l 8080\" \"ollama serve\"",
     "search-server": "node search-server.js",
-    "web-server": "serve -l 8080"
+    "web-server": "serve -l 8080",
+    "start-ollama": "ollama serve"
   },
   "keywords": [
     "ollama",
