@@ -1332,8 +1332,31 @@ function initSettings() {
 
     elements.refreshModels.addEventListener('click', loadOllamaModels);
 
-    elements.settingsModelSelect.addEventListener('change', (e) => {
-        CONFIG.model = e.target.value;
+    elements.settingsModelSelect.addEventListener('change', async (e) => {
+        const selectedValue = e.target.value;
+
+        // Check if this is a library model that needs to be pulled
+        if (selectedValue.startsWith('pull:')) {
+            const modelName = selectedValue.replace('pull:', '');
+
+            // Confirm with user
+            if (!confirm(`Do you want to download and install "${modelName}"? This may take several minutes depending on the model size.`)) {
+                // Reset selection
+                e.target.value = CONFIG.model;
+                return;
+            }
+
+            // Trigger pull
+            elements.pullModelInput.value = modelName;
+            elements.pullModelBtn.click();
+
+            // Reset selection to current model
+            e.target.value = CONFIG.model;
+            return;
+        }
+
+        // Regular model selection
+        CONFIG.model = selectedValue;
         document.querySelector('.model-name').textContent = CONFIG.model;
         // Update welcome message model name
         const welcomeP = document.querySelector('.welcome-message p strong');
@@ -1447,29 +1470,106 @@ function applyLanguage(lang) {
 
 async function loadOllamaModels() {
     try {
-        const response = await fetch(`${CONFIG.ollamaHost}/api/tags`);
-        if (response.ok) {
-            const data = await response.json();
-            elements.settingsModelSelect.innerHTML = '';
-            data.models.forEach(model => {
+        if (!elements.settingsModelSelect) return;
+
+        elements.settingsModelSelect.innerHTML = '<option value="">Loading...</option>';
+
+        // Fetch local models
+        const localResponse = await fetch(`${CONFIG.ollamaHost}/api/tags`);
+        const localModels = localResponse.ok ? (await localResponse.json()).models || [] : [];
+
+        // Fetch library models from Ollama
+        let libraryModels = [];
+        try {
+            const libraryResponse = await fetch('https://ollama.com/api/models');
+            if (libraryResponse.ok) {
+                const libraryData = await libraryResponse.json();
+                libraryModels = libraryData.models || [];
+            }
+        } catch (error) {
+            console.warn('Could not fetch Ollama library models:', error);
+        }
+
+        // Clear select
+        elements.settingsModelSelect.innerHTML = '';
+
+        // Add local models section
+        if (localModels.length > 0) {
+            const localGroup = document.createElement('optgroup');
+            localGroup.label = '📦 Installed Models';
+            localModels.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.name;
                 option.textContent = model.name;
                 if (model.name === CONFIG.model) option.selected = true;
-                elements.settingsModelSelect.appendChild(option);
+                localGroup.appendChild(option);
             });
+            elements.settingsModelSelect.appendChild(localGroup);
         }
+
+        // Add library models section
+        if (libraryModels.length > 0) {
+            const libraryGroup = document.createElement('optgroup');
+            libraryGroup.label = '🌐 Available Models (Pull to Install)';
+
+            // Filter out already installed models and limit to popular ones
+            const installedNames = localModels.map(m => m.name.split(':')[0]);
+            const popularModels = libraryModels
+                .filter(m => !installedNames.includes(m.name))
+                .slice(0, 20); // Limit to 20 most popular
+
+            popularModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = `pull:${model.name}`;
+                option.textContent = `${model.name} (${model.size || 'unknown size'})`;
+                option.setAttribute('data-pull', 'true');
+                libraryGroup.appendChild(option);
+            });
+
+            if (popularModels.length > 0) {
+                elements.settingsModelSelect.appendChild(libraryGroup);
+            }
+        }
+
+        // If no models at all
+        if (localModels.length === 0 && libraryModels.length === 0) {
+            elements.settingsModelSelect.innerHTML = '<option value="">No models available</option>';
+        }
+
     } catch (error) {
         console.error('Failed to load models:', error);
+        if (elements.settingsModelSelect) {
+            elements.settingsModelSelect.innerHTML = '<option value="">Error loading models</option>';
+        }
     }
 }
 
-function populateMicSelect() {
-    // Clone options from main mic select to settings mic select
-    const mainMicSelect = document.getElementById('micSelect');
-    if (mainMicSelect && elements.settingsMicSelect) {
-        elements.settingsMicSelect.innerHTML = mainMicSelect.innerHTML;
-        elements.settingsMicSelect.value = mainMicSelect.value;
+async function populateMicSelect() {
+    try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+
+        if (!elements.settingsMicSelect) return;
+
+        // Clear and populate
+        elements.settingsMicSelect.innerHTML = '';
+
+        audioInputs.forEach((device, index) => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.textContent = device.label || `Microphone ${index + 1}`;
+            elements.settingsMicSelect.appendChild(option);
+        });
+
+        // Set current selection from main mic select if it exists
+        const mainMicSelect = document.getElementById('micSelect');
+        if (mainMicSelect && mainMicSelect.value) {
+            elements.settingsMicSelect.value = mainMicSelect.value;
+        }
+    } catch (error) {
+        console.error('Error enumerating microphones:', error);
     }
 }
 
