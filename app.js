@@ -1198,6 +1198,110 @@ function displayCryptoCharts(cryptoData) {
 let currentSpeech = null;
 let currentTTSButton = null;
 
+// TTS Configuration object
+const TTSConfig = {
+    speed: 1.0,
+    volume: 0.8,
+    voiceGender: 'female',
+
+    load() {
+        const saved = localStorage.getItem('ttsSettings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            this.speed = settings.speed || 1.0;
+            this.volume = settings.volume || 0.8;
+            this.voiceGender = settings.voiceGender || 'female';
+        }
+    },
+
+    save() {
+        localStorage.setItem('ttsSettings', JSON.stringify({
+            speed: this.speed,
+            volume: this.volume,
+            voiceGender: this.voiceGender
+        }));
+    }
+};
+
+function initTTSSettings() {
+    TTSConfig.load();
+
+    const ttsSpeedSlider = document.getElementById('ttsSpeed');
+    const ttsSpeedValue = document.getElementById('ttsSpeedValue');
+    const ttsVolumeSlider = document.getElementById('ttsVolume');
+    const ttsVolumeValue = document.getElementById('ttsVolumeValue');
+    const ttsVoiceSelect = document.getElementById('ttsVoice');
+
+    if (!ttsSpeedSlider || !ttsVolumeSlider || !ttsVoiceSelect) {
+        console.warn('TTS controls not found in DOM');
+        return;
+    }
+
+    ttsSpeedSlider.value = TTSConfig.speed;
+    ttsSpeedValue.textContent = TTSConfig.speed.toFixed(1) + 'x';
+    ttsVolumeSlider.value = TTSConfig.volume * 100;
+    ttsVolumeValue.textContent = Math.round(TTSConfig.volume * 100) + '%';
+    ttsVoiceSelect.value = TTSConfig.voiceGender;
+
+    ttsSpeedSlider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        TTSConfig.speed = value;
+        ttsSpeedValue.textContent = value.toFixed(1) + 'x';
+        TTSConfig.save();
+    });
+
+    ttsVolumeSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value) / 100;
+        TTSConfig.volume = value;
+        ttsVolumeValue.textContent = Math.round(value * 100) + '%';
+        TTSConfig.save();
+    });
+
+    ttsVoiceSelect.addEventListener('change', (e) => {
+        TTSConfig.voiceGender = e.target.value;
+        TTSConfig.save();
+    });
+
+    console.log('TTS settings initialized:', TTSConfig);
+}
+
+function getPreferredVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return null;
+
+    const lang = navigator.language || 'en-US';
+    const langCode = lang.split('-')[0];
+
+    let filteredVoices = voices.filter(voice => {
+        const matchesLang = voice.lang.startsWith(langCode);
+        const voiceName = voice.name.toLowerCase();
+
+        const isFemale = voiceName.includes('female') || voiceName.includes('woman') ||
+            voiceName.includes('zira') || voiceName.includes('hazel') ||
+            voiceName.includes('susan') || voiceName.includes('samantha');
+
+        const isMale = voiceName.includes('male') || voiceName.includes('man') ||
+            voiceName.includes('david') || voiceName.includes('mark') ||
+            voiceName.includes('daniel');
+
+        if (TTSConfig.voiceGender === 'female') {
+            return matchesLang && (isFemale || (!isMale && !isFemale));
+        } else {
+            return matchesLang && (isMale || (!isMale && !isFemale));
+        }
+    });
+
+    if (filteredVoices.length === 0) {
+        filteredVoices = voices.filter(voice => voice.lang.startsWith(langCode));
+    }
+
+    const preferredVoice = filteredVoices.find(voice =>
+        voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Natural')
+    );
+
+    return preferredVoice || filteredVoices[0] || voices[0];
+}
+
 /**
  * Speak a message using Web Speech API
  * @param {string} text - Text to speak
@@ -1238,20 +1342,15 @@ function speakMessage(text, button) {
 
     // Create speech utterance
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 1.1; // Slightly faster
+    utterance.rate = TTSConfig.speed;
+    utterance.volume = TTSConfig.volume;
     utterance.pitch = 1.0;
-    utterance.volume = 1.0;
 
-    // Try to select a better voice
-    const voices = window.speechSynthesis.getVoices();
-    // Prefer "Google", "Microsoft", "Natural" voices that match the system language
-    const preferredVoice = voices.find(voice =>
-        (voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Natural')) &&
-        voice.lang.startsWith(navigator.language.split('-')[0])
-    );
-
+    // Use preferred voice based on gender selection
+    const preferredVoice = getPreferredVoice();
     if (preferredVoice) {
         utterance.voice = preferredVoice;
+        console.log('Using voice:', preferredVoice.name, '(Gender:', TTSConfig.voiceGender + ')');
     }
 
     // Update button state
@@ -1754,4 +1853,10 @@ async function loadAvailableModels() {
         }
     }
 }
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+    NotificationSystem.init();
+    initTTSSettings();
+});
 
