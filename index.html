@@ -302,6 +302,35 @@
                         </select>
                     </div>
                 </div>
+                <!-- Text-to-Speech Settings -->
+                <div class="settings-section">
+                    <h3 data-i18n="ttsTitle">Text-to-Speech</h3>
+                    <div class="setting-item">
+                        <label data-i18n="ttsSpeedLabel">Vitesse de lecture</label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" id="ttsSpeed" class="slider-full" min="0.5" max="2" step="0.1"
+                                value="1">
+                            <span id="ttsSpeedValue"
+                                style="min-width: 40px; color: var(--color-text-secondary);">1.0x</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label data-i18n="ttsVolumeLabel">Volume de lecture</label>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <input type="range" id="ttsVolume" class="slider-full" min="0" max="100" step="5"
+                                value="80">
+                            <span id="ttsVolumeValue"
+                                style="min-width: 40px; color: var(--color-text-secondary);">80%</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label data-i18n="ttsVoiceLabel">Voix</label>
+                        <select id="ttsVoice" class="select-full">
+                            <option value="male">Voix masculine</option>
+                            <option value="female">Voix féminine</option>
+                        </select>
+                    </div>
+                </div>
                 <!-- Ollama Settings -->
                 <div class="settings-section">
                     <h3 data-i18n="ollamaTitle">Ollama</h3>
@@ -338,12 +367,15 @@
         </div>
     </div>
 
+    <div id="notificationContainer" class="notification-container"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script src="media-embeds.js"></script>
     <script src="web-search.js"></script>
     <script src="crypto-detector.js"></script>
     <script src="app.js"></script>
+
 </body>
 
 </html>
