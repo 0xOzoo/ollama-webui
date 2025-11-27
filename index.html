@@ -315,25 +315,35 @@
                                     <path d="M23 4v6h-6"></path>
                                     <path d="M1 20v-6h6"></path>
                                     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
-
-                                        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-                                        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                                        <script src="media-embeds.js"></script>
-                                        <script src="web-search.js"></script>
-                                        <script src="crypto-detector.js"></script>
-                                        <span></span>
-                                        <span></span>
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label data-i18n="pullModelLabel">Download New Model</label>
+                        <div class="model-select-group">
+                            <select id="pullModelSelect" class="select-full">
+                                <option value="">Select a model to download...</option>
+                            </select>
+                            <button id="pullModelBtn" class="btn-primary" data-i18n="pullBtn">Download</button>
+                        </div>
+                        <div id="pullProgress" class="progress-bar" style="display: none;">
+                            <div class="progress-fill"></div>
+                            <span class="progress-text">0%</span>
                         </div>
                     </div>
                 </div>
-                </template>
+            </div>
+        </div>
+    </div>
 
-                <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-                <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                <script src="media-embeds.js"></script>
-                <script src="web-search.js"></script>
-                <script src="crypto-detector.js"></script>
-                <script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script src="media-embeds.js"></script>
+    <script src="web-search.js"></script>
+    <script src="crypto-detector.js"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>
