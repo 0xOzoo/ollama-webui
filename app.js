@@ -1408,12 +1408,12 @@ function applyTheme(theme) {
 
     if (theme === 'light') {
         document.body.classList.add('light-mode');
-        elements.themeLight.classList.add('active');
-        elements.themeDark.classList.remove('active');
+        if (elements.themeLight) elements.themeLight.classList.add('active');
+        if (elements.themeDark) elements.themeDark.classList.remove('active');
     } else {
         document.body.classList.remove('light-mode');
-        elements.themeDark.classList.add('active');
-        elements.themeLight.classList.remove('active');
+        if (elements.themeDark) elements.themeDark.classList.add('active');
+        if (elements.themeLight) elements.themeLight.classList.remove('active');
     }
 }
 
