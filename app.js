@@ -63,9 +63,101 @@ const NotificationSystem = {
         return this.show('warning', title, message, duration);
     }
 };
+// Configure Marked.js with Highlight.js and Custom Renderer
+const renderer = new marked.Renderer();
+
+renderer.code = function (code, language) {
+    let validLanguage = 'plaintext';
+    let highlightedCode = code;
+
+    // Check if hljs is available
+    if (typeof hljs !== 'undefined') {
+        validLanguage = hljs.getLanguage(language) ? language : 'plaintext';
+        try {
+            highlightedCode = hljs.highlight(code, { language: validLanguage }).value;
+        } catch (e) {
+            console.error('Highlight.js error:', e);
+            // Fallback to simple escaping
+            highlightedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    } else {
+        // Fallback if hljs is not loaded
+        highlightedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // Split lines for line numbering
+    const lines = highlightedCode.split('\n');
+    const lineNumbers = lines.map((_, i) => `<span class="line-number">${i + 1}</span>`).join('\n');
+
+    // Generate a unique ID for the copy button
+    const uniqueId = 'code-' + Math.random().toString(36).substr(2, 9);
+
+    return `
+    <div class="code-block-container">
+        <div class="code-block-header">
+            <span class="code-language">${validLanguage}</span>
+            <button class="copy-code-btn" onclick="window.copyCode('${uniqueId}', this)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy
+            </button>
+        </div>
+        <div class="code-block-content">
+            <div class="line-numbers" aria-hidden="true">${lineNumbers}</div>
+            <pre><code id="${uniqueId}" class="hljs language-${validLanguage}">${highlightedCode}</code></pre>
+        </div>
+    </div>
+    `;
+};
+
+marked.setOptions({
+    renderer: renderer,
+    highlight: function (code, lang) {
+        if (typeof hljs !== 'undefined') {
+            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            return hljs.highlight(code, { language }).value;
+        }
+        return code;
+    },
+    langPrefix: 'hljs language-',
+    breaks: true,
+    gfm: true
+});
+
+// Global Copy Code Function
+window.copyCode = function (elementId, button) {
+    const codeElement = document.getElementById(elementId);
+    if (!codeElement) return;
+
+    const code = codeElement.innerText;
+    navigator.clipboard.writeText(code).then(() => {
+        // Visual feedback
+        const originalHtml = button.innerHTML;
+        button.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copied!
+        `;
+        button.classList.add('active');
+
+        setTimeout(() => {
+            button.innerHTML = originalHtml;
+            button.classList.remove('active');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy code:', err);
+        button.innerText = 'Error';
+    });
+};
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
     NotificationSystem.init();
+    init();
+    initTTSSettings();
 });
 // Example usage for model operations:
 /*
@@ -689,24 +781,7 @@ function confirmRecording() {
     }
 }
 
-// ============================================
-// Storage Handling
-// ============================================
-function loadMessages() {
-    const saved = localStorage.getItem('ollama_chat_history');
-    if (saved) {
-        try {
-            state.messages = JSON.parse(saved);
-            state.messages.forEach(msg => renderMessage(msg));
-        } catch (e) {
-            console.error('Failed to load messages:', e);
-        }
-    }
-}
 
-function saveMessagesToStorage() {
-    localStorage.setItem('ollama_chat_history', JSON.stringify(state.messages));
-}
 
 function loadMessages() {
     const saved = localStorage.getItem('ollama_chat_history');
@@ -935,7 +1010,6 @@ function renderMessage(message) {
         contentEl.appendChild(actionsEl);
     }
 
-
     // Assemble Message
     messageEl.appendChild(avatarEl);
     messageEl.appendChild(contentEl);
@@ -1008,28 +1082,13 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
         fullPrompt = `Context from web search:\n${context}\n\nUser Query: ${prompt}\n\nPlease answer the user's query using the provided context if relevant.`;
     }
 
-    const response = await fetch(`${CONFIG.ollamaHost}/api/generate`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: CONFIG.model,
-            prompt: fullPrompt,
-            stream: true
-        })
-    });
-
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let assistantMessage = { role: 'assistant', content: '' };
-
     // Replace loading indicator with empty message
     removeLoadingIndicator(loadingElement);
+
+    const assistantMessage = {
+        role: 'assistant',
+        content: ''
+    };
     addMessage(assistantMessage);
 
     // Get the last message element (the one we just added)
@@ -1037,38 +1096,68 @@ async function sendToOllama(prompt, loadingElement, searchResults = null) {
     const lastMessageEl = messageEls[messageEls.length - 1];
     const textContentEl = lastMessageEl.querySelector('.message-text');
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    try {
+        const response = await fetch(`${CONFIG.ollamaHost}/api/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: CONFIG.model,
+                prompt: fullPrompt,
+                stream: true
+            }),
+        });
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        if (!response.ok) throw new Error('Ollama API error');
 
-        for (const line of lines) {
-            if (!line) continue;
-            try {
-                const json = JSON.parse(line);
-                if (json.response) {
-                    assistantMessage.content += json.response;
-                    // Update the message in state.messages
-                    const lastMessage = state.messages[state.messages.length - 1];
-                    if (lastMessage && lastMessage.role === 'assistant') {
-                        lastMessage.content = assistantMessage.content;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (!line) continue;
+                try {
+                    const json = JSON.parse(line);
+                    if (json.response) {
+                        assistantMessage.content += json.response;
+                        // Update the message in state.messages
+                        const lastMessage = state.messages[state.messages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant') {
+                            lastMessage.content = assistantMessage.content;
+                        }
+
+                        // Use marked if available, otherwise plain text
+                        if (typeof marked !== 'undefined') {
+                            textContentEl.innerHTML = marked.parse(assistantMessage.content);
+                        } else {
+                            textContentEl.textContent = assistantMessage.content;
+                        }
+
+                        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
                     }
-                    textContentEl.innerHTML = marked.parse(assistantMessage.content);
-                    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+                } catch (e) {
+                    console.error('Error parsing JSON chunk', e);
                 }
-            } catch (e) {
-                console.error('Error parsing JSON chunk', e);
             }
         }
+
+        // Save messages after streaming is complete
+        saveMessagesToStorage();
+        console.log('Message streaming complete, saved to storage');
+
+    } catch (error) {
+        console.error('Error in sendToOllama:', error);
+        showErrorMessage('Failed to communicate with Ollama. Please ensure it is running.');
+        updateConnectionStatus(false);
     }
-
-    // Save messages after streaming is complete
-    saveMessagesToStorage();
-    console.log('Message streaming complete, saved to storage');
 }
-
 
 function clearChat() {
     console.log('clearChat function called');
@@ -1693,6 +1782,7 @@ function applyLanguage(lang) {
     }
 }
 
+
 async function loadOllamaModels() {
     try {
         if (!elements.settingsModelSelect) return;
@@ -1876,8 +1966,5 @@ async function loadAvailableModels() {
 }
 
 // Initialize on DOM load
-document.addEventListener('DOMContentLoaded', () => {
-    NotificationSystem.init();
-    initTTSSettings();
-});
+
 
