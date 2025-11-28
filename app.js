@@ -67,22 +67,34 @@ const NotificationSystem = {
 const renderer = new marked.Renderer();
 
 renderer.code = function (code, language) {
+    // Handle both old and new marked.js API
+    let codeText = '';
+    let lang = '';
+
+    if (typeof code === 'object' && code !== null) {
+        codeText = code.text || code.raw || '';
+        lang = code.lang || language || '';
+    } else {
+        codeText = String(code || '');
+        lang = language || '';
+    }
+
     let validLanguage = 'plaintext';
-    let highlightedCode = code;
+    let highlightedCode = codeText;
 
     // Check if hljs is available
     if (typeof hljs !== 'undefined') {
-        validLanguage = hljs.getLanguage(language) ? language : 'plaintext';
+        validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
         try {
-            highlightedCode = hljs.highlight(code, { language: validLanguage }).value;
+            highlightedCode = hljs.highlight(codeText, { language: validLanguage }).value;
         } catch (e) {
             console.error('Highlight.js error:', e);
             // Fallback to simple escaping
-            highlightedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            highlightedCode = codeText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
     } else {
         // Fallback if hljs is not loaded
-        highlightedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        highlightedCode = codeText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
     // Split lines for line numbering
