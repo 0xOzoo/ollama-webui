@@ -9,6 +9,10 @@
 
 </div>
 
+## 🌐 Live Demo
+
+**[Try the live demo here →](https://ollama-webui-theta.vercel.app)**
+
 ---
 
 ## ✨ Features
