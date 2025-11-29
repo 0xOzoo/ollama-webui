@@ -9,9 +9,9 @@
 
 </div>
 
-## 🌐 Live Demo
+## 🌐 Live Demo - Frontend only
 
-**[Try the live demo here →](https://ollama-webui-theta.vercel.app)**
+**[Try the live demo](https://ollama-webui-theta.vercel.app)**
 
 ---
 
