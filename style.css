@@ -1144,6 +1144,7 @@ select option {
     background: rgba(255, 255, 255, 0.1);
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
 }
 
 .slider-full::-webkit-slider-thumb {
